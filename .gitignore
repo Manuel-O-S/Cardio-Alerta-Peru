@@ -1,0 +1,45 @@
+# --- Sistema operativo / editores ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# --- Python (backend, modelo) ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# --- Node / React (web-react) ---
+node_modules/
+dist/
+build/
+.env
+.env.local
+npm-debug.log*
+
+# --- Android / Kotlin (app-kotlin) ---
+*.iml
+.gradle/
+/local.properties
+/.idea/
+/captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+
+# --- Modelos y datasets pesados: no versionar binarios grandes ---
+*.h5
+*.tflite
+*.pt
+/modelo/data/raw/
+
+# --- Secretos ---
+*.pem
+*.key
+.env
