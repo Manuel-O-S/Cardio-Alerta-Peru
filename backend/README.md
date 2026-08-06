@@ -1,24 +1,43 @@
 # backend
 
-API en FastAPI, desplegada en Render. Responsable: **Manuel** (tareas B03-B14 del
-cronograma).
+API en FastAPI, desplegada en Render. Responsable: **Manuel**.
 
-Estructura planeada (ver `docs/Arquitectura_Cardio_Alerta_Peru.docx`, sección
-"Propuesta de repositorio"):
+## Estructura
 
 ```
 backend/
-  app/
-    main.py           # arranque de FastAPI, endpoint /health
-    routers/
-      predict.py       # POST /predict
-      centros.py        # GET /centros-cercanos
-    ml/
-      inferencia.py      # envuelve el modelo que entrega Angel
-  data/
-    centros_referencia.json   # lista de centros (fuente: Davis)
   requirements.txt
+  app/
+    main.py            # arranque de FastAPI + endpoint /health
+    routers/
+      predict.py         # POST /predict (placeholder, se completa en B06/B08)
+      centros.py           # GET /centros-cercanos (placeholder, se completa en B07)
+    ml/
+      inferencia.py         # envuelve el modelo de Angel (placeholder, B08)
+  data/
+    centros_referencia.json  # se agrega en B07, con la lista de Davis (C03)
 ```
 
-Se arma a partir de la tarea **B03** en adelante — por ahora esta carpeta solo
-reserva el lugar en el repo.
+## Cómo correrla en local
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate        # en Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+Abre `http://127.0.0.1:8000/health` → debe responder `{"status": "ok"}`.
+
+También puedes ver la documentación interactiva (autogenerada por FastAPI) en
+`http://127.0.0.1:8000/docs`.
+
+## Estado
+
+- [x] B03 — esqueleto de la API con `/health` (este commit)
+- [ ] B04 — contrato formal de `/predict` y `/centros-cercanos`
+- [ ] B05 — desplegar en Render
+- [ ] B06 — `/predict` con clasificación dummy
+- [ ] B07 — `/centros-cercanos` funcional
+- [ ] B08 — modelo real integrado
