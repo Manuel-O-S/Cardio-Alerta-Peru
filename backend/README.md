@@ -37,7 +37,7 @@ También puedes ver la documentación interactiva (autogenerada por FastAPI) en
 
 - [x] B03 — esqueleto de la API con `/health` (este commit)
 - [x] B04 — contrato formal de `/predict` y `/centros-cercanos` (ver ../docs/Contrato_API.md)
-- [ ] B05 — desplegar en Render
-- [ ] B06 — `/predict` con clasificación dummy
+- [x] B05 — desplegar en Render (https://cardio-alerta-peru.onrender.com)
+- [x] B06 — `/predict` con clasificación dummy (hash de la imagen, ver app/ml/inferencia.py)
 - [ ] B07 — `/centros-cercanos` funcional
 - [ ] B08 — modelo real integrado
