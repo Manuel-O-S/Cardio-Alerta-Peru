@@ -36,7 +36,7 @@ También puedes ver la documentación interactiva (autogenerada por FastAPI) en
 ## Estado
 
 - [x] B03 — esqueleto de la API con `/health` (este commit)
-- [ ] B04 — contrato formal de `/predict` y `/centros-cercanos`
+- [x] B04 — contrato formal de `/predict` y `/centros-cercanos` (ver ../docs/Contrato_API.md)
 - [ ] B05 — desplegar en Render
 - [ ] B06 — `/predict` con clasificación dummy
 - [ ] B07 — `/centros-cercanos` funcional

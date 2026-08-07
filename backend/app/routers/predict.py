@@ -1,14 +1,27 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, File, UploadFile
+
+from app.schemas import Clasificacion, PrediccionResponse
 
 router = APIRouter(prefix="/predict", tags=["predict"])
 
 
-@router.post("/")
-def predict_placeholder():
+@router.post("/", response_model=PrediccionResponse)
+async def predict(
+    imagen: UploadFile = File(..., description="Imagen de ecocardiograma (jpg/png)")
+):
     """
-    Placeholder del endpoint de clasificación.
+    Clasifica una imagen de ecocardiograma.
 
-    Se completa en B06 (recibir imagen + devolver clasificación dummy)
-    y en B08 (reemplazar por el modelo real que entrega Angel en I07).
+    Contrato (tarea B04):
+      - Request: multipart/form-data con un único campo `imagen`.
+      - Response: siempre los 4 campos de PrediccionResponse (ver app/schemas.py).
+
+    Pendiente de implementar:
+      - B06: devolver una clasificación dummy real (no fija) a partir del archivo recibido.
+      - B08: reemplazar por el modelo real que entrega Angel (I07).
     """
-    return {"status": "no implementado todavía", "tarea": "B06 / B08"}
+    return PrediccionResponse(
+        clasificacion=Clasificacion.sano,
+        confianza=0.5,
+        modelo_version="v0-placeholder",
+    )
