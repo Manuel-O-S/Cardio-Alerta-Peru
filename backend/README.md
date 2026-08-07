@@ -39,5 +39,5 @@ También puedes ver la documentación interactiva (autogenerada por FastAPI) en
 - [x] B04 — contrato formal de `/predict` y `/centros-cercanos` (ver ../docs/Contrato_API.md)
 - [x] B05 — desplegar en Render (https://cardio-alerta-peru.onrender.com)
 - [x] B06 — `/predict` con clasificación dummy (hash de la imagen, ver app/ml/inferencia.py)
-- [ ] B07 — `/centros-cercanos` funcional
+- [x] B07 — `/centros-cercanos` funcional (25 centros reales de Davis, filtro por tipo_seguro, distancia haversine)
 - [ ] B08 — modelo real integrado

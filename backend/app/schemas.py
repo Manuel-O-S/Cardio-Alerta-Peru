@@ -54,9 +54,16 @@ class PrediccionResponse(BaseModel):
 class CentroReferencia(BaseModel):
     nombre: str
     direccion: str
+    departamento: str
+    nivel: str = Field(
+        ..., description="Nivel de complejidad del establecimiento (ej. III-2, III-1, II-2)",
+    )
+    iafas: str = Field(
+        ..., description="Red de salud a la que pertenece: 'MINSA', 'EsSalud' u 'Otras'",
+    )
+    especialidad: str
     lat: float
     lon: float
-    especialidad: str
     distancia_km: float = Field(
         ..., description="Distancia en línea recta desde la ubicación consultada",
     )
@@ -70,11 +77,14 @@ class CentrosCercanosResponse(BaseModel):
             "example": {
                 "centros": [
                     {
-                        "nombre": "Instituto Nacional de Salud del Niño - San Borja",
-                        "direccion": "Av. Javier Prado Este 3101, San Borja, Lima",
-                        "lat": -12.0891,
-                        "lon": -76.9975,
-                        "especialidad": "Cardiología pediátrica",
+                        "nombre": "Instituto Nacional de Salud del Niño San Borja (INSN SB)",
+                        "direccion": "San Borja, Lima",
+                        "departamento": "Lima",
+                        "nivel": "III-2",
+                        "iafas": "MINSA",
+                        "especialidad": "Cirugía cardiovascular de máxima complejidad e intervencionismo",
+                        "lat": -12.1075,
+                        "lon": -76.9998,
                         "distancia_km": 2.4,
                     }
                 ]
