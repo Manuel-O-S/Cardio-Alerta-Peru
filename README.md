@@ -1,8 +1,14 @@
 # Cardio Alerta Perú
 
-App de apoyo diagnóstico para especialistas de neonatos: clasifica imágenes de
-ecocardiograma en busca de sospecha de cardiopatía crítica, funciona con o sin
-internet, y sugiere el centro especializado más cercano al que derivar al paciente.
+App de apoyo diagnóstico para especialistas de neonatos: **tamiza recién nacidos
+por oximetría de pulso usando umbrales adaptados a la altitud del Perú**, funciona
+con o sin internet, y sugiere el centro especializado más cercano al que derivar al
+paciente.
+
+La clasificación de imágenes de ecocardiograma queda como **fase 2** (ver
+`modelo/README.md`): el endpoint `/predict` sigue existiendo con una clasificación
+simulada, pero ya no es el núcleo del producto. El motivo está explicado en
+[`docs/Tamizaje_Numerico.md`](./docs/Tamizaje_Numerico.md).
 
 Proyecto para la **Hackatón Niño San Borja 2026** — Desafío 2: *Cardio Alerta Perú*.
 
@@ -21,11 +27,19 @@ Proyecto para la **Hackatón Niño San Borja 2026** — Desafío 2: *Cardio Aler
 ```
 /backend      → API en FastAPI, desplegada en Render (Manuel)
 /app-kotlin   → App Android (Sandro)
-/web-react    → Sitio informativo, desplegado en Netlify (Said)
-/modelo       → Dataset, entrenamiento y exportación del modelo de IA (Angel)
+/web-react    → Web del tamizaje, desplegada en Netlify (Said)
+/modelo       → Dataset, entrenamiento y exportación del modelo de IA (Angel) — fase 2
+/compartido   → Umbrales clínicos y vectores de conformidad del tamizaje
 /docs         → Documentación del proyecto: arquitectura, Anexo 1, Anexo 2
 /figma        → Prototipo y export de pantallas
 ```
+
+> **`/compartido` es la fuente de verdad clínica.** El motor de tamizaje está
+> implementado tres veces (Kotlin en la app, JavaScript en la web, Python en el
+> backend) porque el stack no permite compartir código entre los tres. Los
+> umbrales y los casos de prueba viven en `/compartido` para que no diverjan.
+>
+> **Regla del equipo: quien toque un umbral corre las tres suites, o no mergea.**
 
 Cada carpeta tiene su propio README con instrucciones específicas. El detalle
 completo de cómo encajan las piezas está en

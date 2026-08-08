@@ -1,0 +1,93 @@
+{
+  "version": "1.0.0",
+  "_lea_esto_primero": [
+    "Esta tabla es la UNICA fuente de verdad de los umbrales clinicos.",
+    "Esta replicada en tres archivos (motorTamizaje.js, MotorTamizaje.kt, motor_reglas.py)",
+    "porque el stack del proyecto no permite compartir codigo entre Kotlin, JS y Python.",
+    "REGLA DEL EQUIPO: quien cambie un numero aca lo cambia en los tres archivos y corre",
+    "las tres suites de conformidad, o no mergea. Es lo unico que impide que la app y el",
+    "backend clasifiquen distinto al mismo bebe."
+  ],
+
+  "bandas": [
+    {
+      "id": "B1",
+      "nombre": "Nivel del mar hasta 2500 msnm",
+      "altitud_min": 0,
+      "altitud_max": 2499,
+      "spo2_critico": 90,
+      "spo2_pasa": 95,
+      "diferencia_max": 3,
+      "estado": "verificado",
+      "fuente": "Algoritmo estandar de tamizaje de cardiopatia congenita critica por oximetria de pulso (AAP/CDC). Es el corte internacional de uso extendido."
+    },
+    {
+      "id": "B2",
+      "nombre": "2500 a 3500 msnm",
+      "altitud_min": 2500,
+      "altitud_max": 3499,
+      "spo2_critico": 86,
+      "spo2_pasa": 91,
+      "diferencia_max": 3,
+      "estado": "provisional",
+      "fuente": "PROVISIONAL. Derivado del percentil 5 de saturacion en recien nacidos sanos de altura. NO fue leido de la Figura 3 del articulo peruano. Tarea de Davis: verificar contra doi.org/10.47487/apcyccv.v5i3.366 y corregir estos tres numeros."
+    },
+    {
+      "id": "B3",
+      "nombre": "Mayor a 3500 msnm",
+      "altitud_min": 3500,
+      "altitud_max": 5100,
+      "spo2_critico": 83,
+      "spo2_pasa": 88,
+      "diferencia_max": 3,
+      "estado": "provisional",
+      "fuente": "PROVISIONAL. Derivado del percentil 5 de saturacion en recien nacidos sanos de altura. NO fue leido de la Figura 4 del articulo peruano. Tarea de Davis: verificar contra doi.org/10.47487/apcyccv.v5i3.366 y corregir estos tres numeros."
+    }
+  ],
+
+  "ventana_tamizaje": {
+    "horas_minimas": 24,
+    "horas_ideales_max": 48,
+    "nota": "Antes de las 24 h de vida la tasa de falsos positivos sube porque la transicion circulatoria no termino. Despues de las 48 h el tamizaje sigue siendo valido pero ya se perdio parte de la ventana util."
+  },
+
+  "retamizaje": {
+    "rondas_maximas": 3,
+    "minutos_espera": 60,
+    "nota": "Un resultado 'repetir' significa volver a medir en 1 hora. A la tercera ronda sin pasar, el resultado es positivo."
+  },
+
+  "signos_vitales_referencia": {
+    "_estado": "provisional",
+    "_nota": "Valores de referencia neonatales de uso general, NO de una guia peruana especifica. Tarea de Davis: confirmar o corregir. Estos rangos SOLO generan avisos, nunca alteran el resultado del tamizaje.",
+    "fc_lpm": { "min": 100, "max": 180 },
+    "fr_rpm": { "min": 30, "max": 60 },
+    "peso_kg": { "min": 2.5, "max": 4.5 },
+    "edad_gestacional_termino_sem": 37
+  },
+
+  "sintomas": {
+    "_nota": "Los sintomas de ALARMA sacan al recien nacido del tamizaje: un bebe sintomatico no se tamiza, se evalua. Los de CONTEXTO generan un aviso obligatorio pero no alteran el resultado del algoritmo.",
+    "alarma": [
+      { "id": "cianosis_central",      "etiqueta": "Cianosis central" },
+      { "id": "dificultad_respiratoria", "etiqueta": "Dificultad respiratoria" },
+      { "id": "bradicardia",           "etiqueta": "Bradicardia" },
+      { "id": "hipotension",           "etiqueta": "Hipotension" },
+      { "id": "mala_perfusion",        "etiqueta": "Mala perfusion" },
+      { "id": "hepatomegalia",         "etiqueta": "Hepatomegalia" }
+    ],
+    "contexto": [
+      { "id": "soplo_cardiaco", "etiqueta": "Soplo cardiaco",
+        "nota": "Un soplo no excluye del tamizaje (son frecuentes y muchos son inocentes), pero obliga a evaluacion clinica sea cual sea el resultado del tamizaje." },
+      { "id": "taquicardia",    "etiqueta": "Taquicardia",
+        "nota": "Se muestra como contexto. No entra en el algoritmo." }
+    ]
+  },
+
+  "fuentes": [
+    "Bravo-Jaimes K, et al. Tamizaje neonatal de cardiopatias congenitas criticas en el Peru: un llamado de urgencia. Arch Peru Cardiol Cir Cardiovasc. 2024;5(3):157-166. doi:10.47487/apcyccv.v5i3.366",
+    "Bravo-Jaimes K, et al. ANDES-CHD. J Perinatol. 2024;44(3):373-378.",
+    "Rojas-Camayo J, et al. Reference values for oxygen saturation from sea level to the highest human habitation in the Andes. Thorax. 2018.",
+    "Ley 31975 (2024), que modifica la Ley 29885 e incorpora la cardiopatia congenita al Programa de Tamizaje Neonatal Universal."
+  ]
+}

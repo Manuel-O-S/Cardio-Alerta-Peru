@@ -132,3 +132,149 @@ distrito/ciudad, y rutas reales en vez de línea recta.
   exactamente el caso para el que existe el modo offline — no es un bug, es
   la app funcionando como se diseñó (ver `docs/Arquitectura_Cardio_Alerta_Peru.docx`,
   Decisión 1).
+
+---
+
+# Tamizaje por oximetría de pulso
+
+Diferencia importante respecto de `/predict`: **acá no hay modelo**. Es un
+algoritmo determinista publicado. Por eso cada respuesta trae la banda aplicada
+con su `estado` y su `fuente` — el especialista tiene que poder ver de dónde salió
+el número que se le aplicó. Un veredicto sobre un neonato sin la regla que lo
+produjo no es auditable.
+
+Todo el cálculo también existe en la app (Kotlin) y en la web (JavaScript), y los
+tres pasan los mismos casos de `compartido/vectores_conformidad.json`.
+
+---
+
+## POST /tamizaje/evaluar
+
+Evalúa un tamizaje. Lo usan la app y la web cuando hay internet; sin internet cada
+una usa su propio motor local, que da el mismo resultado.
+
+**Request** — `application/json`. Solo `altitud_msnm` y `spo2_preductal` son
+obligatorios: el resto es opcional para que el personal pueda evaluar con lo que
+tenga y el motor avise de lo que falta, en vez de bloquear.
+
+| Campo | Tipo | Obligatorio | Notas |
+|---|---|---|---|
+| `altitud_msnm` | entero 0-5100 | Sí | Altitud del **establecimiento**. Se configura una vez, no se toma del GPS: bajo techo el GPS es poco confiable y un error cerca del límite de banda cambia el umbral. |
+| `spo2_preductal` | entero 0-100 | Sí | Mano **derecha** |
+| `spo2_postductal` | entero 0-100 | No | Cualquier **pie**. Sin este dato el tamizaje queda `incompleto`. |
+| `horas_de_vida` | número 0-720 | No | En **horas**, no en días. La ventana empieza a las 24 h y "1 día" no distingue entre 24 y 47 h. |
+| `edad_gestacional_sem` | entero 20-45 | No | |
+| `fc_lpm` | entero 30-300 | No | Solo genera avisos |
+| `fr_rpm` | entero 5-150 | No | Solo genera avisos |
+| `peso_kg` | número 0.3-7.0 | No | Solo genera avisos |
+| `sintomas` | lista de texto | No | Ids. Ver `GET /tamizaje/catalogo` |
+| `oxigeno_suplementario` | booleano | No | default `false` |
+| `diagnostico_prenatal_cc` | booleano | No | default `false` |
+| `ronda` | entero 1-3 | No | default 1 |
+
+Ejemplo:
+
+```json
+{
+  "altitud_msnm": 3825,
+  "spo2_preductal": 88,
+  "spo2_postductal": 86,
+  "horas_de_vida": 30,
+  "sintomas": []
+}
+```
+
+**Response 200**
+
+```json
+{
+  "resultado": "negativo",
+  "conducta": "Tamizaje superado. Continuar con los cuidados habituales.",
+  "motivo_no_elegible": null,
+  "sintomas_de_alarma": [],
+  "banda": {
+    "id": "B3",
+    "nombre": "Mayor a 3500 msnm",
+    "altitud_min": 3500,
+    "altitud_max": 5100,
+    "spo2_critico": 83,
+    "spo2_pasa": 88,
+    "diferencia_max": 3,
+    "estado": "provisional",
+    "fuente": "PROVISIONAL. Pendiente de verificación contra la fuente peruana."
+  },
+  "ronda": 1,
+  "proxima_ronda": null,
+  "minutos_espera": null,
+  "diferencia_spo2": 2,
+  "avisos": [
+    { "codigo": "umbral_provisional", "nivel": "alto", "mensaje": "..." }
+  ],
+  "version_umbrales": "1.0.0",
+  "advertencia": "Resultado de un tamizaje, no de un diagnóstico. No reemplaza el criterio clínico del especialista."
+}
+```
+
+### Los cinco valores de `resultado`
+
+| Valor | Qué significa | Qué hace la UI |
+|---|---|---|
+| `no_elegible` | No corresponde tamizaje. Ver `motivo_no_elegible`. | Mostrar la conducta, **no** mostrar un veredicto de tamizaje |
+| `positivo` | Tamizaje no superado | Evaluación médica + ofrecer derivación con `/centros-cercanos` |
+| `negativo` | Tamizaje superado | Cuidados habituales |
+| `repetir` | Zona gris. Repetir en `minutos_espera`. | Guardar el caso con `proxima_ronda` y programar recordatorio |
+| `incompleto` | Falta la SpO₂ del pie | Pedir la medición, **no** emitir resultado |
+
+`motivo_no_elegible` puede ser `sintomatico`, `oxigeno_suplementario`,
+`diagnostico_prenatal` o `menor_24h`.
+
+### Tres reglas que conviene entender antes de consumir esto
+
+**Un recién nacido sintomático no se tamiza.** Si viene cianosis central,
+dificultad respiratoria, bradicardia, hipotensión, mala perfusión o hepatomegalia,
+el resultado es `no_elegible` con motivo `sintomatico` — nunca `negativo`. El
+tamizaje por oximetría está diseñado para recién nacidos **asintomáticos**;
+devolverle "pasó" a un bebé con cianosis sería el peor error posible del sistema.
+
+**Sin la medición del pie no hay resultado.** La diferencia preductal-postductal
+es lo que detecta coartación de aorta e interrupción de arco: lesiones donde la
+mano derecha satura normal y el pie no. Sin ella el resultado es `incompleto`, no
+`negativo`.
+
+**Los signos vitales nunca alteran el resultado.** FC, FR, peso y soplo cardíaco
+salen en `avisos` y no entran al algoritmo. Combinarlos en un puntaje de riesgo
+sería fabricar una regla clínica que nadie validó.
+
+**Errores esperables**
+- `422` si un campo está fuera de rango (lo valida pydantic) o si la altitud cae
+  fuera de las bandas definidas
+
+---
+
+## GET /tamizaje/catalogo
+
+Devuelve las bandas de altitud y el catálogo de síntomas. Existe para que la app y
+la web construyan sus casillas desde una sola fuente: si Davis agrega un síntoma o
+corrige un umbral, no hay que tocar tres interfaces.
+
+**Request** — query params:
+
+| Parámetro | Tipo | Obligatorio | Notas |
+|---|---|---|---|
+| `altitud_msnm` | entero 0-5100 | No | Si se manda, la banda correspondiente viene primera en la lista |
+
+**Response 200** — `version_umbrales`, `bandas`, `sintomas` (cada uno con `tipo`
+`alarma` o `contexto`), `horas_minimas` y `rondas_maximas`.
+
+---
+
+## Nota sobre `estado: "provisional"`
+
+Los umbrales de las bandas 2 y 3 (por encima de 2500 msnm) están marcados
+`provisional`: se derivaron del percentil 5 de saturación en recién nacidos sanos
+de altura y **no** fueron leídos de las Figuras 3 y 4 del artículo peruano
+(`doi.org/10.47487/apcyccv.v5i3.366`).
+
+Mientras sigan así, cada respuesta incluye un aviso de nivel `alto` que lo dice.
+**La UI debe mostrarlo.** Es preferible que se vea en pantalla a que quede
+escondido en un comentario del código.
