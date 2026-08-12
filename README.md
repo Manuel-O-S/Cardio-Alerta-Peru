@@ -5,10 +5,19 @@ por oximetría de pulso usando umbrales adaptados a la altitud del Perú**, func
 con o sin internet, y sugiere el centro especializado más cercano al que derivar al
 paciente.
 
-La clasificación de imágenes de ecocardiograma queda como **fase 2** (ver
-`modelo/README.md`): el endpoint `/predict` sigue existiendo con una clasificación
-simulada, pero ya no es el núcleo del producto. El motivo está explicado en
-[`docs/Tamizaje_Numerico.md`](./docs/Tamizaje_Numerico.md).
+Dirigida a **profesionales de enfermería sin especialización en cardiología
+neonatal**, que son quienes realizan la evaluación inicial en la mayoría de
+establecimientos del país.
+
+La premisa completa está en
+[`docs/Propuesta_Proyecto.md`](./docs/Propuesta_Proyecto.md).
+
+El análisis de imagen de ecocardiograma quedó **fuera del alcance**, por ausencia
+de datasets que permitan validación clínica y porque no resuelve la brecha del
+primer nivel de atención. El sustento está en
+[`docs/Datasets_Fase_Imagen.md`](./docs/Datasets_Fase_Imagen.md). El endpoint
+`/predict` sigue existiendo con una clasificación simulada, pero no es parte del
+producto.
 
 Proyecto para la **Hackatón Niño San Borja 2026** — Desafío 2: *Cardio Alerta Perú*.
 

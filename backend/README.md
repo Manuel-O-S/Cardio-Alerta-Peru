@@ -34,6 +34,17 @@ uvicorn app.main:app --reload
 
 Abre `http://127.0.0.1:8000/health` → debe responder `{"status": "ok"}`.
 
+## Base de datos
+
+Opcional. Sin `DATABASE_URL` el backend funciona con
+`data/centros_referencia.json`, y así está probado. Configuración y advertencias
+de seguridad en [`docs_base_de_datos.md`](./docs_base_de_datos.md).
+
+```bash
+cp .env.example .env          # completar la contraseña; .env está en .gitignore
+python -m scripts.cargar_datos
+```
+
 ## Cómo correr las pruebas
 
 ```bash

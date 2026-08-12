@@ -1,4 +1,8 @@
 import { useMemo, useState } from "react";
+import PanelDerivacion from "./PanelDerivacion.jsx";
+import PanelUbicacion from "./PanelUbicacion.jsx";
+import { guardarCaso } from "./casosPendientes.js";
+import { leerUbicacion } from "./ubicacion.js";
 import {
   BANDAS,
   ETIQUETAS_SINTOMAS,
@@ -20,24 +24,6 @@ import {
  * pegar en el proyecto Vite tal cual y sin configurar nada.
  */
 
-// Altitudes de referencia. Lo correcto es que cada establecimiento configure la
-// suya una sola vez: la altitud del GPS es poco confiable bajo techo y un error
-// cerca del limite de banda cambia el umbral aplicado.
-const ESTABLECIMIENTOS = [
-  { nombre: "Lima / Callao", altitud: 150 },
-  { nombre: "Trujillo", altitud: 34 },
-  { nombre: "Iquitos", altitud: 106 },
-  { nombre: "Arequipa", altitud: 2335 },
-  { nombre: "Cajamarca", altitud: 2750 },
-  { nombre: "Huancayo", altitud: 3249 },
-  { nombre: "Cusco", altitud: 3399 },
-  { nombre: "Huaraz", altitud: 3052 },
-  { nombre: "Puno", altitud: 3827 },
-  { nombre: "Juliaca", altitud: 3825 },
-  { nombre: "Cerro de Pasco", altitud: 4330 },
-  { nombre: "La Rinconada", altitud: 5100 },
-];
-
 const EDADES_GESTACIONALES = [
   { etiqueta: "23-27 sem", valor: 25 },
   { etiqueta: "28-32 sem", valor: 30 },
@@ -50,7 +36,6 @@ const ESTADO_INICIAL = {
   historiaClinica: "",
   apellidoMaterno: "",
   horasDeVida: "",
-  altitudMsnm: 150,
   edadGestacionalSem: 38,
   spo2Preductal: "",
   spo2Postductal: "",
@@ -65,7 +50,10 @@ const ESTADO_INICIAL = {
 
 const num = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
 
-export default function FormularioTamizaje() {
+export default function FormularioTamizaje({ onCasoGuardado }) {
+  // La ubicacion es del establecimiento, no del paciente: se lee una vez y se
+  // conserva entre tamizajes.
+  const [ubicacion, setUbicacion] = useState(leerUbicacion);
   const [f, setF] = useState(ESTADO_INICIAL);
   const [enviado, setEnviado] = useState(false);
 
@@ -86,7 +74,7 @@ export default function FormularioTamizaje() {
 
   const entrada = useMemo(
     () => ({
-      altitudMsnm: num(f.altitudMsnm),
+      altitudMsnm: ubicacion.altitudMsnm,
       spo2Preductal: num(f.spo2Preductal),
       spo2Postductal: num(f.spo2Postductal),
       horasDeVida: num(f.horasDeVida),
@@ -99,11 +87,11 @@ export default function FormularioTamizaje() {
       diagnosticoPrenatalCC: f.diagnosticoPrenatalCC,
       ronda: f.ronda,
     }),
-    [f]
+    [f, ubicacion]
   );
 
   const salida = useMemo(() => (enviado ? evaluarCaso(entrada) : null), [enviado, entrada]);
-  const banda = bandaPorAltitud(num(f.altitudMsnm));
+  const banda = bandaPorAltitud(ubicacion.altitudMsnm);
   const errores = salida && !salida.ok ? salida.errores : {};
 
   // Aviso en vivo, mientras el usuario escribe: le dice que el numero que acaba
@@ -114,52 +102,46 @@ export default function FormularioTamizaje() {
   const reiniciar = () => {
     setF(ESTADO_INICIAL);
     setEnviado(false);
+    setGuardado(false);
+  };
+
+  const [guardado, setGuardado] = useState(false);
+
+  // Guarda el caso para que la ronda siguiente no se pierda en el cambio de
+  // turno. Es el punto donde el tamizaje real falla mas seguido.
+  const guardarPendiente = () => {
+    if (!salida?.ok) return;
+    guardarCaso({
+      historiaClinica: f.historiaClinica,
+      ronda: salida.ronda,
+      proximaRonda: salida.proximaRonda,
+      minutosEspera: salida.minutosEspera,
+      altitudMsnm: ubicacion.altitudMsnm,
+    });
+    setGuardado(true);
+    onCasoGuardado?.();
   };
 
   const siguienteRonda = () => {
     setF((prev) => ({ ...prev, ronda: prev.ronda + 1, spo2Preductal: "", spo2Postductal: "" }));
     setEnviado(false);
+    setGuardado(false);
   };
 
   return (
     <div className="tz">
       <style>{CSS}</style>
 
-      {/* ---------------- Establecimiento ---------------- */}
-      <section className="tz-card">
-        <h2 className="tz-seccion">Establecimiento</h2>
-        <div className="tz-fila">
-          <Campo etiqueta="Lugar">
-            <select
-              className="tz-input"
-              value={f.altitudMsnm}
-              onChange={(e) => set("altitudMsnm")(Number(e.target.value))}
-            >
-              {ESTABLECIMIENTOS.map((e) => (
-                <option key={e.nombre} value={e.altitud}>
-                  {e.nombre} — {e.altitud.toLocaleString("es-PE")} msnm
-                </option>
-              ))}
-            </select>
-          </Campo>
-          <Campo etiqueta="Altitud (msnm)" error={errores.altitudMsnm}>
-            <input
-              className={`tz-input tz-mono ${errores.altitudMsnm ? "tz-error" : ""}`}
-              type="number"
-              value={f.altitudMsnm}
-              onChange={(e) => set("altitudMsnm")(e.target.value)}
-            />
-          </Campo>
-        </div>
-        {banda && (
-          <p className={`tz-banda ${banda.estado === "provisional" ? "tz-banda-prov" : ""}`}>
-            Banda <strong>{banda.id}</strong> · {banda.nombre} · corte critico{" "}
-            <strong>&lt;{banda.spo2Critico}%</strong> · pasa con{" "}
-            <strong>&ge;{banda.spo2Pasa}%</strong>
-            {banda.estado === "provisional" && " · umbrales provisionales"}
-          </p>
-        )}
-      </section>
+      <PanelUbicacion ubicacion={ubicacion} onCambio={setUbicacion} />
+
+      {banda && (
+        <p className="tz-banda-suelta">
+          Banda <strong>{banda.id}</strong> · corte critico{" "}
+          <strong>&lt;{banda.spo2Critico}%</strong> · pasa con{" "}
+          <strong>&ge;{banda.spo2Pasa}%</strong>
+          {banda.estado === "provisional" && " · umbrales provisionales"}
+        </p>
+      )}
 
       {/* ---------------- Paciente ---------------- */}
       <section className="tz-card">
@@ -344,8 +326,22 @@ export default function FormularioTamizaje() {
 
       {/* ---------------- Resultado ---------------- */}
       {salida?.ok && (
-        <PanelResultado salida={salida} onSiguienteRonda={siguienteRonda} />
+        <PanelResultado
+          salida={salida}
+          onSiguienteRonda={siguienteRonda}
+          onGuardarPendiente={guardarPendiente}
+          guardado={guardado}
+        />
       )}
+
+      {/* La derivacion solo aparece cuando hace falta: tamizaje no superado, o
+          recien nacido sintomatico que necesita evaluacion inmediata. */}
+      {salida?.ok &&
+        (salida.resultado === Resultado.POSITIVO ||
+          salida.resultado === Resultado.NO_ELEGIBLE) && (
+          <PanelDerivacion latInicial={ubicacion.lat} lonInicial={ubicacion.lon} />
+        )}
+
       {salida && !salida.ok && (
         <section className="tz-card tz-res tz-res-error">
           <h2 className="tz-seccion">Revisa los datos</h2>
@@ -393,7 +389,7 @@ const TITULO = {
   [Resultado.NO_ELEGIBLE]: "No corresponde tamizaje",
 };
 
-function PanelResultado({ salida, onSiguienteRonda }) {
+function PanelResultado({ salida, onSiguienteRonda, onGuardarPendiente, guardado }) {
   return (
     <section className={`tz-card tz-res ${TONO[salida.resultado]}`}>
       <h2 className="tz-seccion">Resultado</h2>
@@ -420,9 +416,19 @@ function PanelResultado({ salida, onSiguienteRonda }) {
       )}
 
       {salida.proximaRonda && (
-        <button type="button" className="tz-boton" onClick={onSiguienteRonda}>
-          Registrar ronda {salida.proximaRonda} (en {salida.minutosEspera} min)
-        </button>
+        <div className="tz-acciones">
+          <button type="button" className="tz-boton" onClick={onSiguienteRonda}>
+            Registrar ronda {salida.proximaRonda} ahora
+          </button>
+          <button
+            type="button"
+            className="tz-boton tz-boton-sec"
+            onClick={onGuardarPendiente}
+            disabled={guardado}
+          >
+            {guardado ? "Guardado en pendientes" : `Recordar en ${salida.minutosEspera} min`}
+          </button>
+        </div>
       )}
 
       {salida.avisos.length > 0 && (
@@ -443,17 +449,14 @@ function PanelResultado({ salida, onSiguienteRonda }) {
 // ---------------------------------------------------------------------------
 
 const CSS = `
-.tz { --tinta:#243b53; --suave:#7b93a8; --linea:#e3e9ef; --fondo:#f6f8fa;
-      --campo:#f8fafc; --rojo:#c0334a; --rojo-suave:#fdf2f4; --rojo-linea:#f0b8c2;
-      --verde:#1f7a5a; --verde-suave:#f0f9f5; --ambar:#8a6116; --ambar-suave:#fdf8ec;
-      --marino:#1d3557;
-      max-width:760px; margin:0 auto; padding:16px; color:var(--tinta);
+.tz { max-width:760px; margin:0 auto; padding:0 16px; color:var(--tinta);
       font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
 .tz *, .tz *::before, .tz *::after { box-sizing:border-box; }
-.tz-card { background:#fff; border:1px solid var(--linea); border-radius:14px;
-           padding:18px; margin-bottom:14px; }
-.tz-seccion { font-size:11px; font-weight:600; letter-spacing:.14em;
-              text-transform:uppercase; color:var(--suave); margin:0 0 14px; }
+.tz-card { background:var(--carta); border:1px solid var(--linea);
+           border-radius:var(--radio); padding:18px; margin-bottom:14px; }
+.tz-seccion { font-size:10.5px; font-weight:600; letter-spacing:.14em;
+              text-transform:uppercase; color:var(--suave); margin:0 0 14px;
+              font-family:ui-monospace,"SF Mono",Menlo,monospace; }
 .tz-fila { display:flex; gap:12px; flex-wrap:wrap; }
 .tz-campo { flex:1 1 150px; margin-bottom:12px; display:flex; flex-direction:column; }
 .tz-label { font-size:12.5px; color:var(--suave); margin-bottom:6px; }
@@ -461,7 +464,7 @@ const CSS = `
 .tz-input { width:100%; padding:11px 12px; border:1px solid var(--linea);
             border-radius:9px; background:var(--campo); font-size:15px;
             color:var(--tinta); font-family:inherit; }
-.tz-input:focus-visible { outline:2px solid var(--marino); outline-offset:1px; }
+.tz-input:focus-visible { outline:2px solid var(--marino-alto); outline-offset:1px; }
 .tz-mono { font-family:ui-monospace,"SF Mono",Menlo,monospace; letter-spacing:.04em; }
 .tz-error { border-color:var(--rojo-linea); background:var(--rojo-suave); color:var(--rojo); }
 .tz-mensaje-error { font-size:12px; color:var(--rojo); margin-top:5px; }
@@ -478,29 +481,32 @@ const CSS = `
 .tz-chip { padding:9px 15px; border-radius:9px; border:1px solid var(--linea);
            background:var(--campo); color:var(--tinta); font-size:13.5px;
            cursor:pointer; font-family:inherit; }
-.tz-chip-on { background:var(--marino); border-color:var(--marino); color:#fff; font-weight:500; }
+.tz-chip-on { background:var(--marino-alto); border-color:var(--marino-alto);
+              color:#fff; font-weight:500; }
 .tz-checks { display:grid; grid-template-columns:repeat(2,1fr); gap:9px; margin-bottom:9px; }
 .tz-check { display:flex; align-items:center; gap:9px; padding:11px 13px;
             border:1px solid var(--linea); border-radius:9px; background:var(--campo);
             font-size:13.5px; cursor:pointer; }
-.tz-check input { accent-color:var(--marino); width:16px; height:16px; margin:0; }
+.tz-check input { accent-color:var(--marino-alto); width:16px; height:16px; margin:0; }
 .tz-check-alarma { background:var(--rojo-suave); border-color:var(--rojo-linea); color:var(--rojo); }
 .tz-check-alarma input { accent-color:var(--rojo); }
-.tz-check-ctx { background:var(--ambar-suave); border-color:#e8d9b0; color:var(--ambar); }
+.tz-check-ctx { background:var(--ambar-suave); border-color:var(--ambar-linea); color:var(--ambar); }
 .tz-acciones { display:flex; gap:10px; margin-bottom:14px; }
-.tz-boton { padding:12px 20px; border-radius:9px; border:none; background:var(--marino);
+.tz-boton { padding:13px 20px; border-radius:10px; border:none; background:var(--rojo);
             color:#fff; font-size:14.5px; font-weight:500; cursor:pointer;
             font-family:inherit; margin-top:12px; }
 .tz-acciones .tz-boton { margin-top:0; }
+.tz-boton { transition:background .15s ease; }
+.tz-boton:not(.tz-boton-sec):hover { background:var(--rojo-hover); }
 .tz-boton-sec { background:transparent; color:var(--suave); border:1px solid var(--linea); }
-.tz-res-titulo { font-size:19px; font-weight:600; margin:0 0 6px; }
+.tz-res-titulo { font-size:20px; font-weight:600; margin:0 0 6px; letter-spacing:-.01em; }
 .tz-res-conducta { font-size:14.5px; margin:0 0 12px; line-height:1.5; }
 .tz-res-dato { font-size:12.5px; color:var(--suave); margin:0 0 5px; }
 .tz-res-positivo { border-color:var(--rojo-linea); background:var(--rojo-suave); }
 .tz-res-positivo .tz-res-titulo { color:var(--rojo); }
-.tz-res-negativo { border-color:#bfe3d3; background:var(--verde-suave); }
+.tz-res-negativo { border-color:var(--verde-linea); background:var(--verde-suave); }
 .tz-res-negativo .tz-res-titulo { color:var(--verde); }
-.tz-res-repetir, .tz-res-noelegible { border-color:#e8d9b0; background:var(--ambar-suave); }
+.tz-res-repetir, .tz-res-noelegible { border-color:var(--ambar-linea); background:var(--ambar-suave); }
 .tz-res-repetir .tz-res-titulo, .tz-res-noelegible .tz-res-titulo { color:var(--ambar); }
 .tz-res-noelegible { border-color:var(--rojo-linea); background:var(--rojo-suave); }
 .tz-res-noelegible .tz-res-titulo { color:var(--rojo); }
@@ -512,6 +518,21 @@ const CSS = `
 .tz-aviso-bajo { color:var(--suave); }
 .tz-advertencia { margin:16px 0 0; padding-top:12px; border-top:1px solid var(--linea);
                   font-size:12px; color:var(--suave); }
+
+.tz-banda-suelta { margin:-6px 0 14px; padding:0 4px; font-size:12.5px;
+                   color:var(--suave); line-height:1.5; }
+.tz-deriv { border-color:#cfd9e3; }
+.tz-centros { list-style:none; margin:14px 0 0; padding:0; }
+.tz-centro { border-top:1px solid var(--linea); padding:12px 0; }
+.tz-centro:first-child { border-top:none; }
+.tz-centro-cab { display:flex; justify-content:space-between; align-items:baseline;
+                 gap:10px; margin-bottom:4px; }
+.tz-centro-nombre { font-size:14.5px; font-weight:500; line-height:1.35; }
+.tz-centro-dist { font-size:13px; color:var(--suave); flex-shrink:0; }
+.tz-centro-datos { margin:0; font-size:12.5px; color:var(--suave); line-height:1.45; }
+.tz-centro-nota { margin:4px 0 0; font-size:12px; color:var(--tenue); line-height:1.45;
+                  font-style:italic; }
+.tz-boton:disabled { opacity:.55; cursor:default; }
 @media (max-width:520px) { .tz-checks { grid-template-columns:1fr; } }
 @media (prefers-reduced-motion:reduce) { .tz * { transition:none !important; } }
 `;

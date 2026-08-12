@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es-PE">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#1d3557" />
+    <meta
+      name="description"
+      content="Apoyo al tamizaje neonatal de cardiopatia congenita critica por oximetria de pulso, con umbrales ajustados a la altitud del Peru."
+    />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <title>Cardio Alerta Peru</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // El service worker es lo que permite que el tamizaje funcione sin
+      // conexion. Se registra despues de la carga para no competir con ella.
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js").catch(() => {
+            // Sin service worker la app sigue funcionando, solo pierde el offline.
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

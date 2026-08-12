@@ -34,6 +34,7 @@ Cuando crees el proyecto en K01, muévelos así:
 
 ```
 tamizaje/MotorTamizaje.kt        → app/src/main/java/pe/cardioalerta/tamizaje/
+tamizaje/Ubicacion.kt            → app/src/main/java/pe/cardioalerta/tamizaje/
 tamizaje/VectoresConformidad.kt  → app/src/test/java/pe/cardioalerta/tamizaje/
 tamizaje/MotorTamizajeTest.kt    → app/src/test/java/pe/cardioalerta/tamizaje/
 ```

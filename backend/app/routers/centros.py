@@ -5,16 +5,83 @@ from typing import Optional
 
 from fastapi import APIRouter, Query
 
+from app.db import conexion
 from app.schemas import CentroReferencia, CentrosCercanosResponse
 
 router = APIRouter(prefix="/centros-cercanos", tags=["centros"])
 
 DATA_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "centros_referencia.json"
 
+# La tabla vive en Supabase y se llama `hospitales`.
+TABLA = "hospitales"
+CAMPOS = ("nombre", "direccion", "departamento", "nivel", "iafas",
+          "especialidad", "lat", "lon", "status")
 
-def _cargar_centros() -> list[dict]:
+DISPONIBLE = "disponible"
+
+
+def _a_float(valor) -> float:
+    """
+    Las columnas lat/lon son `numeric` en Postgres, así que psycopg las devuelve
+    como Decimal. Mezclar Decimal y float en la fórmula de distancia revienta,
+    así que se convierten en el borde y no más adentro.
+    """
+    return float(valor)
+
+
+def _cargar_desde_json() -> list[dict]:
+    """
+    Respaldo local. El archivo no tiene columna `status`, así que no se puede
+    saber la disponibilidad: se marca como desconocida en vez de inventar que
+    todos están disponibles.
+    """
     with open(DATA_PATH, encoding="utf-8") as f:
-        return json.load(f)
+        centros = json.load(f)
+    for c in centros:
+        c.setdefault("status", None)
+    return centros
+
+
+def _cargar_desde_bd() -> Optional[list[dict]]:
+    """Devuelve los hospitales de la base de datos, o None si no está disponible."""
+    with conexion() as con:
+        if con is None:
+            return None
+        try:
+            from sqlalchemy import text
+
+            filas = con.execute(
+                text(f"SELECT {', '.join(CAMPOS)} FROM {TABLA}")
+            ).fetchall()
+            if not filas:
+                # Una tabla vacía no es una respuesta válida: mejor caer al JSON
+                # que dejar sin centros a quien necesita derivar.
+                return None
+            centros = [dict(zip(CAMPOS, fila)) for fila in filas]
+            for c in centros:
+                c["lat"] = _a_float(c["lat"])
+                c["lon"] = _a_float(c["lon"])
+            return centros
+        except Exception:  # noqa: BLE001 — cualquier fallo degrada al archivo
+            return None
+
+
+def _cargar_centros() -> tuple[list[dict], str]:
+    """
+    Base de datos primero, archivo después.
+
+    Devuelve también el origen, porque cambia lo que se le puede prometer al
+    usuario: desde el archivo no hay dato de disponibilidad.
+    """
+    desde_bd = _cargar_desde_bd()
+    if desde_bd is not None:
+        return desde_bd, "postgresql"
+    return _cargar_desde_json(), "archivo_json"
+
+
+def _esta_disponible(centro: dict) -> bool:
+    status = centro.get("status")
+    return isinstance(status, str) and status.strip().lower() == DISPONIBLE
 
 
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -29,8 +96,8 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 @router.get("/", response_model=CentrosCercanosResponse)
 def centros_cercanos(
-    lat: float = Query(..., description="Latitud del especialista/paciente"),
-    lon: float = Query(..., description="Longitud del especialista/paciente"),
+    lat: float = Query(..., description="Latitud del establecimiento que deriva"),
+    lon: float = Query(..., description="Longitud del establecimiento que deriva"),
     limite: int = Query(3, ge=1, le=10, description="Cantidad máxima de centros a devolver"),
     tipo_seguro: Optional[str] = Query(
         None,
@@ -40,28 +107,52 @@ def centros_cercanos(
             "misma red del paciente. Si no se manda, busca en todas las redes."
         ),
     ),
+    solo_disponibles: bool = Query(
+        True,
+        description=(
+            "Si es true (por defecto), devuelve solo hospitales con status "
+            "'Disponible'. Si ninguno lo está, devuelve los ocupados igual y lo "
+            "avisa en `hay_disponibles`: es preferible dar una opción ocupada "
+            "que no dar ninguna."
+        ),
+    ),
 ):
     """
-    Devuelve los centros de referencia más cercanos a una ubicación (tarea B07).
+    Devuelve los hospitales de referencia más cercanos a una ubicación (tarea B07).
 
-    Datos: 25 establecimientos con capacidad de atención de cardiopatías
-    congénitas en Perú, lista curada por Davis a partir de fuentes oficiales
-    (ver backend/data/centros_referencia.json).
+    Ordena por distancia en línea recta (haversine) desde la ubicación
+    consultada. **No es una ruta por carretera**: la distancia real de traslado
+    es siempre mayor, y así se indica en la interfaz.
 
-    Distancia: línea recta (haversine) entre la ubicación consultada y la
-    ubicación aproximada del distrito/ciudad del establecimiento — no es una
-    ruta real por calles, es una aproximación suficiente para el alcance de
-    la hackatón (ver disclaimer en docs/Arquitectura_Cardio_Alerta_Peru.docx).
+    Sobre la disponibilidad: por defecto solo se devuelven los hospitales con
+    status 'Disponible'. Si no hay ninguno que cumpla el resto de filtros, se
+    devuelven los ocupados de todas formas con `hay_disponibles: false` — dejar
+    la pantalla vacía sería peor que mostrar una opción ocupada, porque el
+    equipo puede llamar y confirmar.
+
+    Cuando los datos vienen del archivo de respaldo no hay columna de
+    disponibilidad. En ese caso `status` viene en `null` y `hay_disponibles`
+    también, para que la interfaz no afirme algo que no puede saber.
     """
-    centros = _cargar_centros()
+    centros, origen = _cargar_centros()
+    sabe_disponibilidad = origen == "postgresql"
 
     if tipo_seguro:
         centros = [c for c in centros if c["iafas"].lower() == tipo_seguro.lower()]
 
-    con_distancia = [
-        (_haversine_km(lat, lon, c["lat"], c["lon"]), c) for c in centros
-    ]
-    con_distancia.sort(key=lambda par: par[0])
+    hay_disponibles: Optional[bool] = None
+    if sabe_disponibilidad:
+        disponibles = [c for c in centros if _esta_disponible(c)]
+        hay_disponibles = len(disponibles) > 0
+        if solo_disponibles and disponibles:
+            centros = disponibles
+        # Si se pidieron solo disponibles y no hay ninguno, se devuelven todos:
+        # `hay_disponibles` en false le dice a la interfaz que lo advierta.
+
+    con_distancia = sorted(
+        ((_haversine_km(lat, lon, c["lat"], c["lon"]), c) for c in centros),
+        key=lambda par: par[0],
+    )
 
     resultado = [
         CentroReferencia(
@@ -73,9 +164,14 @@ def centros_cercanos(
             especialidad=c["especialidad"],
             lat=c["lat"],
             lon=c["lon"],
+            status=c.get("status"),
             distancia_km=round(distancia, 1),
         )
         for distancia, c in con_distancia[:limite]
     ]
 
-    return CentrosCercanosResponse(centros=resultado)
+    return CentrosCercanosResponse(
+        centros=resultado,
+        origen_datos=origen,
+        hay_disponibles=hay_disponibles,
+    )

@@ -65,13 +65,40 @@ class CentroReferencia(BaseModel):
     especialidad: str
     lat: float
     lon: float
+    status: Optional[str] = Field(
+        None,
+        description=(
+            "Disponibilidad reportada: 'Disponible' u 'Ocupado'. Viene en null "
+            "cuando los datos salen del archivo de respaldo, que no tiene esta "
+            "columna: null significa 'no se sabe', no 'no disponible'."
+        ),
+    )
     distancia_km: float = Field(
         ..., description="Distancia en línea recta desde la ubicación consultada",
     )
 
 
 class CentrosCercanosResponse(BaseModel):
+    """
+    Además de la lista, informa de dónde salieron los datos y si había algún
+    hospital disponible. La interfaz necesita las dos cosas para no afirmar
+    disponibilidad cuando no puede saberla.
+    """
+
     centros: list[CentroReferencia]
+
+    origen_datos: str = Field(
+        "postgresql",
+        description="'postgresql' o 'archivo_json'. El segundo no tiene dato de disponibilidad.",
+    )
+    hay_disponibles: Optional[bool] = Field(
+        None,
+        description=(
+            "True si hay al menos un hospital con status 'Disponible' que cumpla "
+            "los filtros. False si todos están ocupados (la lista se devuelve "
+            "igual). None si el origen no permite saberlo."
+        ),
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
