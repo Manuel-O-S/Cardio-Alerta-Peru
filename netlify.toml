@@ -1,0 +1,61 @@
+# ---------------------------------------------------------------------------
+# Despliegue de la web en Netlify.
+#
+# Este archivo va en la RAIZ del repositorio, no dentro de web-react/. Netlify
+# lo busca acá; si está en una subcarpeta lo ignora y el despliegue falla con
+# un error confuso sobre no encontrar el comando de build.
+#
+# Con este archivo NO hace falta configurar nada en el panel de Netlify: basta
+# con conectar el repositorio.
+# ---------------------------------------------------------------------------
+
+[build]
+  # La web vive en un subdirectorio del repo.
+  base = "web-react"
+  command = "npm ci && npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Fijar la versión evita que Netlify cambie de Node entre despliegues y algo
+  # que compilaba deje de compilar sin que nadie haya tocado el código.
+  NODE_VERSION = "20"
+
+# La app es de una sola página: cualquier ruta la resuelve React.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# ---------------------------------------------------------------------------
+# El service worker NO debe quedar cacheado por el CDN. Si se cachea, los
+# usuarios se quedan con una versión vieja de la app y no hay forma de
+# actualizarlos: el service worker viejo sigue sirviendo el bundle viejo.
+# ---------------------------------------------------------------------------
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+# Los bundles llevan hash en el nombre, así que se pueden cachear para siempre.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ---------------------------------------------------------------------------
+# Cabeceras de seguridad. `connect-src` debe incluir la URL del backend: si no,
+# el navegador bloquea las llamadas a /centros-cercanos y la derivación queda
+# en blanco sin decir por qué.
+# ---------------------------------------------------------------------------
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://cardio-alerta-peru.onrender.com; frame-ancestors 'none'"

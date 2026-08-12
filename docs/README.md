@@ -9,6 +9,8 @@ Documentación del proyecto.
   **El documento de arquitectura es anterior a este módulo**, así que donde los dos
   hablen del núcleo del producto, manda este.
 - `Contrato_API.md` — qué manda y qué recibe cada endpoint.
+- `Despliegue.md` — **cómo poner esto en línea.** Render, Netlify y Supabase,
+  paso a paso, con los errores típicos y cómo se ven.
 - `Propuesta_Proyecto.md` — **la premisa vigente del proyecto.** Qué problema
   resuelve, para quién, y las decisiones de diseño que lo sostienen. Base del
   Anexo 1.
