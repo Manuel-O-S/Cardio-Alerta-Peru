@@ -160,6 +160,8 @@ falla.
 | Síntoma | Causa probable |
 |---|---|
 | Netlify: "build command failed" | Falta `package-lock.json` en el repo; `npm ci` lo necesita |
+| Render: "No matching distribution found for psycopg-binary" | La versión fijada no tiene wheel para el Python del servidor. `requirements.txt` usa rangos por eso; si vuelve a pasar, subir el mínimo del rango |
+| `/health` devuelve solo `{"status":"ok"}` | Render está sirviendo la versión 0.1.0. Falta subir el código al repositorio |
 | La web carga pero la derivación queda vacía | CORS: `ORIGENES_PERMITIDOS` no tiene la URL exacta de Netlify |
 | "Failed to fetch" al guardar datos sin conexión | Lo mismo. El navegador bloquea antes de salir y `fetch` no distingue eso de "no hay red". Ver la consola (F12): el error de CORS aparece con todas las letras |
 | "Usar mi ubicación" no hace nada | Permiso de ubicación denegado. La app ahora lo dice y explica cómo activarlo desde el candado |
