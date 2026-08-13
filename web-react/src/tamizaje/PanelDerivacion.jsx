@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import AvisoDatosOffline from "./AvisoDatosOffline.jsx";
+import { buscarLocal, hayDatos } from "./datosOffline.js";
 
 /**
  * Derivacion: donde llevar al recien nacido cuando el tamizaje no se supera.
@@ -90,6 +92,23 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
     }
     setEstado("cargando");
     setMensaje("");
+
+    // Si la persona autorizo guardar los hospitales, se busca en el
+    // dispositivo: es instantaneo y funciona sin conexion. El servidor solo
+    // hace falta cuando no hay datos guardados.
+    const local = buscarLocal({
+      lat: Number(lat),
+      lon: Number(lon),
+      limite: 5,
+      tipoSeguro: seguro,
+      soloDisponibles: !verOcupados,
+    });
+    if (local) {
+      setCentros(local.centros);
+      setMeta({ hayDisponibles: local.hay_disponibles, origen: "dispositivo" });
+      setEstado("ok");
+      return;
+    }
 
     const params = new URLSearchParams({
       lat,
@@ -200,6 +219,13 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
         </p>
       )}
 
+      {meta.origen === "dispositivo" && centros.length > 0 && (
+        <p className="tz-nota">
+          Busqueda hecha con los hospitales guardados en este dispositivo.
+          Confirmar la disponibilidad por telefono antes de trasladar.
+        </p>
+      )}
+
       {meta.origen === "archivo_json" && centros.length > 0 && (
         <p className="tz-nota">
           Sin dato de disponibilidad: la lista viene del respaldo local.
@@ -234,6 +260,8 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
           )}
         </>
       )}
+
+      <AvisoDatosOffline onCambio={() => buscar()} />
 
       <label className="tz-ver-ocupados">
         <input

@@ -31,6 +31,20 @@ web-react/
 import FormularioTamizaje from "./tamizaje/FormularioTamizaje.jsx";
 ```
 
+## Datos sin conexión: es opcional y con permiso
+
+La lista de hospitales **no se descarga sola**. La app muestra un aviso que
+explica exactamente qué se guarda y qué no, y nada baja hasta que la persona
+acepta. Si rechaza, todo funciona igual consultando el servidor; lo único que
+se pierde es poder derivar sin conexión.
+
+Se puede borrar en cualquier momento desde el mismo panel.
+
+El paquete (`GET /centros-cercanos/paquete-offline`, unos 7 KB) contiene solo
+establecimientos de salud. Hay una suite en el backend
+(`tests/test_paquete_offline.py`) que falla si alguien agrega un campo de
+paciente.
+
 El componente no necesita Tailwind, ni librerías de formularios, ni llamadas al
 backend: los estilos van en un `<style>` local y **todo el cálculo pasa en el
 navegador**. Eso significa que dentro de un PWA el tamizaje funciona sin conexión,
@@ -70,6 +84,8 @@ Netlify. Por defecto apunta a `https://cardio-alerta-peru.onrender.com`.
 | `src/tamizaje/PanelDerivacion.jsx` | Centros cercanos, con copia local para offline |
 | `src/tamizaje/PanelPendientes.jsx` | Casos en espera de repetición |
 | `src/tamizaje/casosPendientes.js` | Persistencia del retamizaje |
+| `src/tamizaje/AvisoDatosOffline.jsx` | Pide permiso antes de guardar datos en el dispositivo |
+| `src/tamizaje/datosOffline.js` | Descarga, búsqueda local y borrado de la copia |
 | `src/tamizaje/PanelUbicacion.jsx` | Configura dónde está el establecimiento |
 | `src/tamizaje/ubicacion.js` | Catálogo, persistencia y validación de coordenadas |
 | `src/tamizaje/motorTamizaje.js` | El motor. Sin dependencias. |

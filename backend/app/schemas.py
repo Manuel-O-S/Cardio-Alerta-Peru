@@ -305,3 +305,51 @@ class CatalogoResponse(BaseModel):
     sintomas: list[SintomaCatalogo]
     horas_minimas: float
     rondas_maximas: int
+
+
+# ===========================================================================
+# PAQUETE DE DATOS PARA USO SIN CONEXIÓN
+# ===========================================================================
+
+
+class HospitalOffline(BaseModel):
+    """
+    Un hospital, sin distancia: se calcula en el dispositivo según dónde esté
+    quien consulta.
+    """
+
+    nombre: str
+    direccion: str
+    departamento: str
+    nivel: str
+    iafas: str
+    especialidad: str
+    lat: float
+    lon: float
+    status: Optional[str] = None
+
+
+class PaqueteOfflineResponse(BaseModel):
+    """
+    Copia completa de los hospitales de referencia, para guardar en el
+    dispositivo y poder derivar sin conexión.
+
+    GARANTÍA DE CONTENIDO
+    Este paquete contiene ÚNICAMENTE datos de establecimientos de salud, que
+    son información pública. No incluye —ni puede incluir— ningún dato de
+    pacientes: el backend no los almacena, y los datos del recién nacido nunca
+    salen del dispositivo donde se hace el tamizaje.
+
+    Hay una prueba automática que verifica que ningún campo del paquete
+    corresponda a datos de paciente. Si alguien agrega uno por error, falla.
+    """
+
+    version: str = Field(..., description="Cambia cuando cambian los datos; sirve para saber si hay que actualizar")
+    generado: str = Field(..., description="Fecha y hora ISO 8601 en que se armó el paquete")
+    total: int
+    origen_datos: str = Field(..., description="'postgresql' o 'archivo_json'")
+    contiene_datos_de_paciente: bool = Field(
+        False,
+        description="Siempre false. Declarado explícitamente para que la interfaz pueda mostrarlo al pedir permiso.",
+    )
+    hospitales: list[HospitalOffline]

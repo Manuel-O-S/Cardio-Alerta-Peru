@@ -1,12 +1,19 @@
+import hashlib
 import json
 import math
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Query
 
 from app.db import conexion
-from app.schemas import CentroReferencia, CentrosCercanosResponse
+from app.schemas import (
+    CentroReferencia,
+    CentrosCercanosResponse,
+    HospitalOffline,
+    PaqueteOfflineResponse,
+)
 
 router = APIRouter(prefix="/centros-cercanos", tags=["centros"])
 
@@ -174,4 +181,57 @@ def centros_cercanos(
         centros=resultado,
         origen_datos=origen,
         hay_disponibles=hay_disponibles,
+    )
+
+
+@router.get("/paquete-offline", response_model=PaqueteOfflineResponse)
+def paquete_offline():
+    """
+    Copia completa de los hospitales, para guardar en el dispositivo.
+
+    Lo pide la web SOLO si la persona da permiso explícito. No se descarga
+    solo, y la aplicación funciona sin él: sin el paquete, la derivación
+    consulta el servidor en cada búsqueda y deja de funcionar sin conexión.
+
+    QUÉ CONTIENE Y QUÉ NO
+    Únicamente establecimientos de salud, que son información pública: nombre,
+    dirección, departamento, nivel, red de aseguramiento, capacidad,
+    coordenadas y disponibilidad reportada.
+
+    **No contiene datos de pacientes.** No es una promesa de diseño: el backend
+    no almacena datos identificables de recién nacidos, y los del tamizaje
+    nunca salen del dispositivo. Hay una prueba automática que verifica que
+    ningún campo del paquete corresponda a un dato de paciente.
+
+    No trae distancias: se calculan en el dispositivo según dónde esté quien
+    consulta, que es justamente lo que permite buscar sin conexión.
+    """
+    centros, origen = _cargar_centros()
+
+    # La versión es un hash del contenido: si los datos no cambiaron, no
+    # cambia, y el dispositivo sabe que no hace falta volver a descargar.
+    huella = hashlib.sha256(
+        json.dumps(centros, sort_keys=True, default=str).encode("utf-8")
+    ).hexdigest()[:12]
+
+    return PaqueteOfflineResponse(
+        version=huella,
+        generado=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        total=len(centros),
+        origen_datos=origen,
+        contiene_datos_de_paciente=False,
+        hospitales=[
+            HospitalOffline(
+                nombre=c["nombre"],
+                direccion=c["direccion"],
+                departamento=c["departamento"],
+                nivel=c["nivel"],
+                iafas=c["iafas"],
+                especialidad=c["especialidad"],
+                lat=c["lat"],
+                lon=c["lon"],
+                status=c.get("status"),
+            )
+            for c in centros
+        ],
     )
