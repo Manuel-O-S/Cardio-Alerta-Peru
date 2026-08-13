@@ -72,45 +72,58 @@ export default function CalculadoraHidratacion({
         </button>
       </div>
 
-      <div className="tz-fila">
-        <div className="tz-campo">
-          <label className="tz-label">Peso (kg)</label>
-          <input
-            className={`tz-input tz-mono ${errores.pesoKg ? "tz-error" : ""}`}
-            value={f.pesoKg}
-            onChange={set("pesoKg")}
-            placeholder="3.2"
-            inputMode="decimal"
-          />
-          {errores.pesoKg && <span className="tz-mensaje-error">{errores.pesoKg}</span>}
-        </div>
-        <div className="tz-campo">
-          <label className="tz-label">Horas de vida</label>
-          <input
-            className={`tz-input tz-mono ${errores.horasDeVida ? "tz-error" : ""}`}
-            value={f.horasDeVida}
-            onChange={set("horasDeVida")}
-            placeholder="30"
-            inputMode="numeric"
-          />
-          {errores.horasDeVida && (
-            <span className="tz-mensaje-error">{errores.horasDeVida}</span>
+      {/* Estos tres datos ya se ingresaron en el tamizaje. Se muestran como
+          contexto, no como campos: volver a pedirlos invita a que difieran del
+          caso que se acaba de evaluar. Si falta alguno, se puede escribir. */}
+      <div className="hid-heredado">
+        <div className="hid-dato">
+          <span className="hid-dato-etq">Peso</span>
+          {pesoInicial != null ? (
+            <span className="hid-dato-val tz-mono">{f.pesoKg} kg</span>
+          ) : (
+            <input
+              className={`tz-input tz-mono ${errores.pesoKg ? "tz-error" : ""}`}
+              value={f.pesoKg}
+              onChange={set("pesoKg")}
+              placeholder="3.2"
+              inputMode="decimal"
+            />
           )}
         </div>
-        <div className="tz-campo">
-          <label className="tz-label">Edad gestacional (sem)</label>
-          <input
-            className={`tz-input tz-mono ${errores.edadGestacionalSem ? "tz-error" : ""}`}
-            value={f.edadGestacionalSem}
-            onChange={set("edadGestacionalSem")}
-            placeholder="38"
-            inputMode="numeric"
-          />
-          {errores.edadGestacionalSem && (
-            <span className="tz-mensaje-error">{errores.edadGestacionalSem}</span>
+        <div className="hid-dato">
+          <span className="hid-dato-etq">Horas de vida</span>
+          {horasInicial != null ? (
+            <span className="hid-dato-val tz-mono">{f.horasDeVida} h</span>
+          ) : (
+            <input
+              className={`tz-input tz-mono ${errores.horasDeVida ? "tz-error" : ""}`}
+              value={f.horasDeVida}
+              onChange={set("horasDeVida")}
+              placeholder="30"
+              inputMode="numeric"
+            />
+          )}
+        </div>
+        <div className="hid-dato">
+          <span className="hid-dato-etq">Edad gestacional</span>
+          {edadGestacionalInicial != null ? (
+            <span className="hid-dato-val tz-mono">{f.edadGestacionalSem} sem</span>
+          ) : (
+            <input
+              className={`tz-input tz-mono ${errores.edadGestacionalSem ? "tz-error" : ""}`}
+              value={f.edadGestacionalSem}
+              onChange={set("edadGestacionalSem")}
+              placeholder="38"
+              inputMode="numeric"
+            />
           )}
         </div>
       </div>
+      {(errores.pesoKg || errores.horasDeVida || errores.edadGestacionalSem) && (
+        <p className="tz-nota">
+          {"Faltan datos del tamizaje. Compl\u00E9talos arriba y vuelve a evaluar."}
+        </p>
+      )}
 
       {/* La tabla da un rango, no un numero. Por defecto se toma el minimo:
           en sospecha de cardiopatia el riesgo relevante es la sobrecarga de
@@ -241,6 +254,14 @@ const CSS_HID = `
 .hid-abrir, .hid-cerrar { flex-shrink:0; background:none; border:1px solid var(--linea);
               border-radius:8px; padding:8px 14px; font-family:inherit;
               font-size:13px; color:var(--marino-alto); cursor:pointer; }
+.hid-heredado { display:flex; gap:22px; flex-wrap:wrap; padding:12px 14px;
+                border-radius:9px; background:var(--campo);
+                border:1px solid var(--linea); margin-bottom:14px; }
+.hid-dato { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.hid-dato-etq { font-size:10.5px; font-weight:600; letter-spacing:.1em;
+                text-transform:uppercase; color:var(--suave);
+                font-family:ui-monospace,"SF Mono",Menlo,monospace; }
+.hid-dato-val { font-size:15px; font-weight:600; color:var(--tinta); }
 .hid-check { display:flex; align-items:center; gap:9px; padding:11px 13px;
              border:1px solid var(--linea); border-radius:9px; background:var(--campo);
              font-size:13.5px; cursor:pointer; margin-bottom:4px; }

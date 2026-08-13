@@ -1,9 +1,15 @@
 import { useMemo, useState } from "react";
 import {
   ADVERTENCIA_PGE1,
+  AMPOLLA,
   DOSIS,
+  EFECTOS_ADVERSOS,
+  ESTABILIDAD,
+  FUENTE_INSN,
+  MONITOREO,
   PROTOCOLO,
   calcular,
+  calcularINSN,
 } from "./prostaglandina.js";
 
 /**
@@ -20,6 +26,10 @@ import {
 export default function CalculadoraPGE1({ pesoInicial }) {
   const [abierta, setAbierta] = useState(false);
   const [verProtocolo, setVerProtocolo] = useState(false);
+  const [verEfectos, setVerEfectos] = useState(false);
+  // Por defecto la preparacion del INSN: es la del hospital de referencia y
+  // evita tener que introducir la concentracion, que es donde mas se falla.
+  const [modo, setModo] = useState("insn");
   const [f, setF] = useState({
     pesoKg: pesoInicial != null ? String(pesoInicial) : "",
     dosisUgKgMin: "",
@@ -32,7 +42,15 @@ export default function CalculadoraPGE1({ pesoInicial }) {
     setCalculado(false);
   };
 
-  const r = useMemo(() => (calculado ? calcular(f) : null), [calculado, f]);
+  const r = useMemo(
+    () =>
+      calculado
+        ? modo === "insn"
+          ? calcularINSN({ pesoKg: f.pesoKg, dosisUgKgMin: f.dosisUgKgMin })
+          : calcular(f)
+        : null,
+    [calculado, f, modo]
+  );
   const errores = r && !r.ok ? r.errores : {};
 
   if (!abierta) {
@@ -67,10 +85,36 @@ export default function CalculadoraPGE1({ pesoInicial }) {
 
       <p className="pge-advertencia">{ADVERTENCIA_PGE1}</p>
 
+      <p className="pge-ampolla tz-mono">
+        {`Ampolla: ${AMPOLLA.volumenMl} mL a ${AMPOLLA.concentracionUgMl} µg/mL`}
+      </p>
+
+      <div className="tz-chips" style={{ marginBottom: 16 }}>
+        <button
+          type="button"
+          className={`tz-chip ${modo === "insn" ? "tz-chip-on" : ""}`}
+          onClick={() => { setModo("insn"); setCalculado(false); }}
+          aria-pressed={modo === "insn"}
+        >
+          {"Preparaci\u00F3n INSN"}
+        </button>
+        <button
+          type="button"
+          className={`tz-chip ${modo === "libre" ? "tz-chip-on" : ""}`}
+          onClick={() => { setModo("libre"); setCalculado(false); }}
+          aria-pressed={modo === "libre"}
+        >
+          {"Otra concentraci\u00F3n"}
+        </button>
+      </div>
+
       {/* --- Entradas --- */}
       <div className="tz-fila">
         <div className="tz-campo">
-          <label className="tz-label">Peso del paciente (kg)</label>
+          <label className="tz-label">
+            Peso del paciente (kg)
+            {pesoInicial != null && <span className="tz-ayuda"> · del tamizaje</span>}
+          </label>
           <input
             className={`tz-input tz-mono ${errores.pesoKg ? "tz-error" : ""}`}
             value={f.pesoKg}
@@ -99,6 +143,7 @@ export default function CalculadoraPGE1({ pesoInicial }) {
         </div>
       </div>
 
+      {modo === "libre" && (
       <div className="tz-campo">
         <label className="tz-label">
           Concentracion de la solucion preparada
@@ -115,6 +160,7 @@ export default function CalculadoraPGE1({ pesoInicial }) {
           <span className="tz-mensaje-error">{errores.concentracionUgMl}</span>
         )}
       </div>
+      )}
 
       <p className="pge-rango">
         Rango habitual: {DOSIS.min}–{DOSIS.max} {DOSIS.unidad}. La dosis la
@@ -137,6 +183,20 @@ export default function CalculadoraPGE1({ pesoInicial }) {
           <p className="pge-secundaria tz-mono">
             {r.dosisUgMin} µg/min · {r.dosisUgH} µg/h
           </p>
+
+          {r.preparacion && (
+            <div className="pge-preparacion">
+              <p className="pge-sub">{"C\u00F3mo preparar la infusi\u00F3n"}</p>
+              <ol className="pge-prep-lista">
+                {r.preparacion.map((t, i) => (
+                  <li key={i}>{t}</li>
+                ))}
+              </ol>
+              <p className="pge-prep-clave tz-mono">
+                {`Concentraci\u00F3n final: ${r.concentracionFinalUgMl} µg/mL · cada 1 mL/h = 0,01 µg/kg/min`}
+              </p>
+            </div>
+          )}
 
           {/* El desarrollo completo: el paso 7 pide doble comprobacion
               independiente, y no se puede comprobar un numero sin ver de
@@ -179,6 +239,53 @@ export default function CalculadoraPGE1({ pesoInicial }) {
       >
         {verProtocolo ? "Ocultar protocolo" : "Ver protocolo de preparacion y administracion"}
       </button>
+
+      {/* Efectos adversos: quien prepara la infusion es quien primero los ve. */}
+      <button
+        type="button"
+        className="pge-ver-protocolo"
+        onClick={() => setVerEfectos(!verEfectos)}
+        aria-expanded={verEfectos}
+      >
+        {verEfectos ? "Ocultar efectos adversos" : "Ver efectos adversos y conducta"}
+      </button>
+
+      {verEfectos && (
+        <div className="pge-efectos">
+          <p className="pge-sub">{"Monitorizar durante la infusi\u00F3n"}</p>
+          <ul className="pge-monitoreo">
+            {MONITOREO.map((m) => (
+              <li key={m}>{m}</li>
+            ))}
+          </ul>
+
+          <p className="pge-sub" style={{ marginTop: 16 }}>Efectos adversos</p>
+          {EFECTOS_ADVERSOS.map((e) => (
+            <div key={e.efecto} className="pge-efecto">
+              <div className="pge-efecto-cab">
+                <span className="pge-efecto-nombre">{e.efecto}</span>
+                <span className="pge-efecto-frec">{e.frecuencia}</span>
+              </div>
+              <ul className="pge-efecto-conducta">
+                {e.conducta.map((c, i) => (
+                  <li key={i}>{c}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
+          <p className="pge-sub" style={{ marginTop: 16 }}>Estabilidad</p>
+          <ul className="pge-monitoreo">
+            {ESTABILIDAD.map((e) => (
+              <li key={e.que}>
+                {e.que}: <strong>{e.duracion}</strong>
+              </li>
+            ))}
+          </ul>
+
+          <p className="pge-fuente">{FUENTE_INSN}</p>
+        </div>
+      )}
 
       {verProtocolo && (
         <ol className="pge-protocolo">
@@ -241,6 +348,30 @@ const CSS_PGE = `
 .pge-ver-protocolo { display:block; margin-top:16px; background:none; border:none;
                      padding:0; font-family:inherit; font-size:13px;
                      color:var(--marino-alto); cursor:pointer; text-decoration:underline; }
+.pge-ampolla { margin:0 0 14px; font-size:12.5px; color:var(--suave);
+               padding:9px 12px; border-radius:8px; background:var(--campo);
+               border:1px solid var(--linea); display:inline-block; }
+.pge-preparacion { margin-bottom:16px; padding-bottom:14px;
+                   border-bottom:1px solid var(--linea); }
+.pge-prep-lista { margin:0 0 10px; padding-left:18px; }
+.pge-prep-lista li { font-size:13px; line-height:1.6; margin-bottom:6px; color:var(--tinta); }
+.pge-prep-clave { margin:0; padding:10px 12px; border-radius:8px;
+                  background:var(--verde-suave); border:1px solid var(--verde-linea);
+                  color:var(--verde); font-size:12.5px; line-height:1.45; }
+.pge-efectos { margin-top:14px; }
+.pge-monitoreo { margin:0; padding-left:17px; }
+.pge-monitoreo li { font-size:13px; line-height:1.6; color:var(--tinta); }
+.pge-efecto { padding:11px 0; border-top:1px solid var(--linea); }
+.pge-efecto-cab { display:flex; justify-content:space-between; align-items:baseline;
+                  gap:10px; margin-bottom:5px; }
+.pge-efecto-nombre { font-size:14px; font-weight:600; color:var(--tinta); }
+.pge-efecto-frec { flex-shrink:0; font-size:11px; color:var(--suave);
+                   font-family:ui-monospace,"SF Mono",Menlo,monospace; }
+.pge-efecto-conducta { margin:0; padding-left:17px; }
+.pge-efecto-conducta li { font-size:12.5px; line-height:1.55; color:var(--suave);
+                          margin-bottom:3px; }
+.pge-fuente { margin:16px 0 0; padding-top:12px; border-top:1px solid var(--linea);
+              font-size:11.5px; color:var(--tenue); line-height:1.5; font-style:italic; }
 .pge-protocolo { list-style:none; margin:14px 0 0; padding:0; }
 .pge-protocolo-paso { display:flex; gap:12px; padding:12px 0;
                       border-top:1px solid var(--linea); }

@@ -235,3 +235,235 @@ export const ADVERTENCIA_PGE1 =
   "entorno con monitorizacion neonatal y capacidad de soporte respiratorio y " +
   "cardiovascular. Esta herramienta calcula, no prescribe: la dosis y la " +
   "indicacion son del medico.";
+
+// ---------------------------------------------------------------------------
+// Protocolo del INSN San Borja
+// ---------------------------------------------------------------------------
+
+/**
+ * Presentacion y preparacion segun la "Guia de uso de prostaglandinas en
+ * cardiopatias congenitas ductus-dependiente", 2022, Instituto Nacional de
+ * Salud del Niño de San Borja, Peru.
+ *
+ * LA GRACIA DE ESTA PREPARACION
+ * Con la "regla del 3", la velocidad de infusion NO depende del peso:
+ * 1 mL/h entrega siempre 0,01 µg/kg/min, sea cual sea el paciente. El peso
+ * entra en la PREPARACION (cuantos mL de solucion base se toman), no en el
+ * calculo de la velocidad. Eso elimina una division a mano en la cabecera del
+ * paciente, que es donde se cometen los errores.
+ */
+export const AMPOLLA = {
+  volumenMl: 1,
+  concentracionUgMl: 500,
+  contenidoUg: 500,
+};
+
+export const SOLUCION_BASE = {
+  // 1 mL de ampolla + 49 mL de NaCl 0,9% = 50 mL
+  diluyenteMl: 49,
+  volumenFinalMl: 50,
+  concentracionUgMl: 10,
+  diluyente: "NaCl 0,9%",
+};
+
+export const INFUSION_INSN = {
+  volumenFinalMl: 50,
+  diluyentes: "NaCl 0,9% o dextrosa 5%",
+  // Cada mL/h entrega esta dosis
+  dosisPorMlH: 0.01,
+  multiplicadorPeso: 3,
+};
+
+export const ESTABILIDAD = [
+  { que: "Solucion base refrigerada (2-4 °C)", duracion: "6 dias" },
+  { que: "Infusion a temperatura ambiente", duracion: "24 h" },
+];
+
+export const MONITOREO = [
+  "Frecuencia y esfuerzos respiratorios",
+  "Saturacion arterial",
+  "Colocacion del paciente",
+  "Presion arterial",
+  "Diuresis",
+];
+
+/**
+ * Calculo con la preparacion del INSN.
+ *
+ * Preparacion:
+ *   1. Diluir 1 ampolla (1 mL, 500 µg/mL) en 49 mL de NaCl 0,9%
+ *      -> 50 mL de solucion base a 10 µg/mL
+ *   2. Tomar (peso × 3) mL de esa solucion base
+ *   3. Completar hasta 50 mL con NaCl 0,9% o dextrosa 5%
+ *   4. Cada 1 mL/h entrega 0,01 µg/kg/min
+ *
+ * Velocidad (mL/h) = dosis (µg/kg/min) ÷ 0,01
+ */
+export function calcularINSN({ pesoKg, dosisUgKgMin }) {
+  const errores = {};
+  const num = (v) => (v === "" || v == null ? NaN : Number(v));
+  const peso = num(pesoKg);
+  const dosis = num(dosisUgKgMin);
+
+  if (!Number.isFinite(peso)) errores.pesoKg = "Falta el peso del paciente.";
+  else if (peso < 0.3 || peso > 7) errores.pesoKg = "Fuera de rango (0.3 a 7.0 kg).";
+
+  if (!Number.isFinite(dosis)) errores.dosisUgKgMin = "Falta la dosis prescrita.";
+  else if (dosis < 0.001 || dosis > 1) errores.dosisUgKgMin = "Fuera de rango (0.001 a 1).";
+
+  if (Object.keys(errores).length) return { ok: false, errores };
+
+  const r2 = (n) => Math.round(n * 100) / 100;
+
+  const volumenBaseMl = peso * INFUSION_INSN.multiplicadorPeso;
+  const diluyenteMl = INFUSION_INSN.volumenFinalMl - volumenBaseMl;
+  const contenidoUg = volumenBaseMl * SOLUCION_BASE.concentracionUgMl;
+  const concentracionFinalUgMl = contenidoUg / INFUSION_INSN.volumenFinalMl;
+  const velocidadMlH = dosis / INFUSION_INSN.dosisPorMlH;
+
+  const avisos = [];
+
+  if (dosis < DOSIS.min || dosis > DOSIS.max) {
+    avisos.push({
+      nivel: "alto",
+      texto:
+        `Dosis fuera del rango de la guia (${DOSIS.min}–${DOSIS.max} ${DOSIS.unidad}). ` +
+        "Confirmar con el medico prescriptor antes de administrar.",
+    });
+  }
+
+  if (volumenBaseMl > INFUSION_INSN.volumenFinalMl) {
+    avisos.push({
+      nivel: "alto",
+      texto:
+        `Con ${peso} kg harian falta ${r2(volumenBaseMl)} mL de solucion base, mas que ` +
+        `los ${INFUSION_INSN.volumenFinalMl} mL del volumen final. Consultar al equipo ` +
+        "medico: esta preparacion no aplica a este peso.",
+    });
+  }
+
+  return {
+    ok: true,
+    volumenBaseMl: r2(volumenBaseMl),
+    diluyenteMl: r2(diluyenteMl),
+    contenidoUg: r2(contenidoUg),
+    concentracionFinalUgMl: r2(concentracionFinalUgMl),
+    velocidadMlH: r2(velocidadMlH),
+    dosisUgMin: r2(dosis * peso),
+    preparacion: [
+      `Diluir 1 ampolla (${AMPOLLA.volumenMl} mL, ${AMPOLLA.concentracionUgMl} µg/mL) en ` +
+        `${SOLUCION_BASE.diluyenteMl} mL de ${SOLUCION_BASE.diluyente} → ` +
+        `${SOLUCION_BASE.volumenFinalMl} mL de solucion base a ${SOLUCION_BASE.concentracionUgMl} µg/mL.`,
+      `Tomar ${r2(volumenBaseMl)} mL de la solucion base (peso × 3 = ${peso} × 3).`,
+      `Completar con ${INFUSION_INSN.diluyentes} hasta ${INFUSION_INSN.volumenFinalMl} mL ` +
+        `(añadir ${r2(diluyenteMl)} mL).`,
+      `Administrar por bomba infusora a ${r2(velocidadMlH)} mL/h.`,
+    ],
+    pasos: [
+      {
+        titulo: "Solucion base a tomar",
+        formula: "peso × 3",
+        sustitucion: `${peso} kg × 3`,
+        resultado: `${r2(volumenBaseMl)} mL`,
+      },
+      {
+        titulo: "Contenido de PGE1 en la jeringa",
+        formula: "volumen base × concentracion base",
+        sustitucion: `${r2(volumenBaseMl)} mL × ${SOLUCION_BASE.concentracionUgMl} µg/mL`,
+        resultado: `${r2(contenidoUg)} µg en ${INFUSION_INSN.volumenFinalMl} mL`,
+      },
+      {
+        titulo: "Velocidad de infusion",
+        formula: "dosis ÷ 0,01 (cada mL/h entrega 0,01 µg/kg/min)",
+        sustitucion: `${dosis} µg/kg/min ÷ ${INFUSION_INSN.dosisPorMlH}`,
+        resultado: `${r2(velocidadMlH)} mL/h`,
+      },
+    ],
+    avisos,
+  };
+}
+
+/**
+ * Efectos adversos y conducta, segun la guia del INSN San Borja (2022).
+ * Se muestran junto a la calculadora porque quien prepara la infusion es
+ * quien primero va a ver el efecto.
+ */
+export const EFECTOS_ADVERSOS = [
+  {
+    efecto: "Apnea",
+    frecuencia: "Frecuente",
+    conducta: [
+      "Estimulacion del paciente.",
+      "Apoyo con bolsa de resucitacion.",
+      "Considerar intubacion y ventilacion mecanica segun estado clinico.",
+      "Disminucion de la dosis.",
+      "Considerar aminofilina en pacientes de menos de 2 kg: inicio 6 mg/kg endovenoso, mantenimiento 2 mg/kg endovenoso cada 8 h.",
+    ],
+  },
+  {
+    efecto: "Miocionias, agitacion",
+    frecuencia: "Frecuente",
+    conducta: ["Disminucion de la dosis.", "Considerar sedacion."],
+  },
+  {
+    efecto: "Hipotension",
+    frecuencia: "Frecuente",
+    conducta: [
+      "Bolo de 10 mL/kg de NaCl 0,9% o haemaccel.",
+      "Considerar dopamina a dosis presora.",
+    ],
+  },
+  {
+    efecto: "Hipertermia",
+    frecuencia: "Frecuente",
+    conducta: [
+      "Disminucion de la dosis.",
+      "Medios fisicos.",
+      "No utilizar AINES.",
+      "Excluir sepsis como causa.",
+    ],
+  },
+  {
+    efecto: "Vasodilatacion cutanea",
+    frecuencia: "Frecuente con via arterial umbilical",
+    conducta: ["Preferir via venosa central."],
+  },
+  {
+    efecto: "Taquicardia",
+    frecuencia: "Frecuente",
+    conducta: ["Excluir otras patologias como causa."],
+  },
+  {
+    efecto: "Diarrea",
+    frecuencia: "Poco frecuente",
+    conducta: ["Mantener buena hidratacion.", "Disminucion de la dosis."],
+  },
+  {
+    efecto: "Hiperplasia antral",
+    frecuencia: "Infrecuente",
+    conducta: ["Ecografia diagnostica.", "Colocacion de sonda nasoyeyunal."],
+  },
+  {
+    efecto: "Alteraciones electroliticas",
+    frecuencia: "Infrecuente",
+    conducta: [
+      "Mantener buen aporte hidroelectrolitico.",
+      "Disminuir dosis de diureticos si se administran de forma concomitante.",
+    ],
+  },
+  {
+    efecto: "Hiperostosis cortical",
+    frecuencia: "Poco frecuente",
+    conducta: [
+      "Monitorear fosfatasa alcalina.",
+      "Radiografia de huesos largos para descarte.",
+      "Descartar osteomielitis, cubrir con antibioticos.",
+      "Analgesicos.",
+      "Puede mantenerse varios meses tras suspender el farmaco.",
+    ],
+  },
+];
+
+export const FUENTE_INSN =
+  "Guia de uso de prostaglandinas en cardiopatias congenitas ductus-dependiente. " +
+  "2022. Instituto Nacional de Salud del Niño de San Borja, Peru.";
