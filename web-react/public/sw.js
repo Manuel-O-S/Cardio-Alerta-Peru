@@ -11,8 +11,13 @@
  *     confusion sobre que tan viejos son los datos.
  */
 
-const CACHE = "cardio-alerta-v1";
+const CACHE = "cardio-alerta-v2";
 const ESENCIALES = ["/", "/index.html", "/manifest.webmanifest"];
+
+// Google Fonts. Se guardan tras la primera carga para que la tipografia de la
+// interfaz tambien funcione sin conexion; si no, sin señal la app cae a las
+// fuentes del sistema y se ve distinta a como se diseño.
+const ORIGENES_FUENTES = ["https://fonts.googleapis.com", "https://fonts.gstatic.com"];
 
 self.addEventListener("install", (evento) => {
   evento.waitUntil(
@@ -35,7 +40,32 @@ self.addEventListener("fetch", (evento) => {
   if (peticion.method !== "GET") return;
 
   const url = new URL(peticion.url);
-  // Todo lo que no sea de este origen (o sea, el backend) pasa directo.
+
+  // Las fuentes son de otro origen pero si se guardan: son inmutables y hacen
+  // falta para que la interfaz se vea igual sin conexion.
+  if (ORIGENES_FUENTES.includes(url.origin)) {
+    evento.respondWith(
+      caches.match(peticion).then(
+        (cacheada) =>
+          cacheada ||
+          fetch(peticion)
+            .then((respuesta) => {
+              if (respuesta && (respuesta.ok || respuesta.type === "opaque")) {
+                const copia = respuesta.clone();
+                caches.open(CACHE).then((c) => c.put(peticion, copia));
+              }
+              return respuesta;
+            })
+            // Sin fuentes la app sigue funcionando con las del sistema.
+            .catch(() => new Response("", { status: 504 }))
+      )
+    );
+    return;
+  }
+
+  // El resto de otros origenes (el backend) pasa directo: sus respuestas no se
+  // cachean aca porque el panel de derivacion ya guarda su propia copia y sabe
+  // decir de cuando es.
   if (url.origin !== self.location.origin) return;
 
   evento.respondWith(

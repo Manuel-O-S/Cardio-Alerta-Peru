@@ -89,10 +89,48 @@ export function casosVigentes() {
     .sort((a, b) => a.reevaluarDesde - b.reevaluarDesde);
 }
 
-/** Texto listo para pantalla: "toca ahora" o "en 42 min". */
+/**
+ * Cuenta atras para pantalla.
+ *
+ * Devuelve minutos y segundos por separado para que el contador corra de
+ * verdad. Con solo minutos el numero se queda quieto durante 60 segundos y
+ * parece que la aplicacion se colgo; viendo los segundos correr se entiende
+ * que hay algo esperando.
+ *
+ * Cuando llega a cero no se queda en "0": pasa a contar cuanto hace que
+ * vencio, porque un caso vencido hace media hora es mas urgente que uno que
+ * acaba de vencer.
+ */
 export function tiempoRestante(caso, ahora = Date.now()) {
   const faltanMs = caso.reevaluarDesde - ahora;
-  if (faltanMs <= 0) return { vencido: true, texto: "Toca reevaluar" };
-  const minutos = Math.ceil(faltanMs / 60000);
-  return { vencido: false, texto: `En ${minutos} min` };
+
+  if (faltanMs <= 0) {
+    const vencidoMin = Math.floor(-faltanMs / 60000);
+    return {
+      vencido: true,
+      minutos: 0,
+      segundos: 0,
+      vencidoHaceMin: vencidoMin,
+      texto:
+        vencidoMin < 1
+          ? "Toca reevaluar ahora"
+          : vencidoMin < 60
+            ? `Vencido hace ${vencidoMin} min`
+            : `Vencido hace ${Math.floor(vencidoMin / 60)} h ${vencidoMin % 60} min`,
+      reloj: "00:00",
+    };
+  }
+
+  const totalSeg = Math.floor(faltanMs / 1000);
+  const minutos = Math.floor(totalSeg / 60);
+  const segundos = totalSeg % 60;
+
+  return {
+    vencido: false,
+    minutos,
+    segundos,
+    vencidoHaceMin: 0,
+    texto: `Faltan ${minutos} min`,
+    reloj: `${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}`,
+  };
 }

@@ -129,3 +129,62 @@ export function ubicacionManual({ nombre, altitudMsnm, lat, lon }) {
     manual: true,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Departamento a partir de coordenadas
+// ---------------------------------------------------------------------------
+
+/**
+ * Deduce departamento y altitud aproximada desde unas coordenadas, buscando el
+ * establecimiento conocido mas cercano.
+ *
+ * POR QUE ASI Y NO CON UN SERVICIO DE GEOCODIFICACION
+ * Un servicio externo obligaria a abrir la politica de seguridad a otro
+ * dominio, dependeria de internet justo donde peor conexion hay, y mandaria
+ * las coordenadas del establecimiento a un tercero. Con 13 puntos de
+ * referencia repartidos por el pais, el vecino mas cercano acierta el
+ * departamento en la mayoria de casos y funciona sin conexion.
+ *
+ * LA ALTITUD QUE DEVUELVE ES UNA SUGERENCIA, NO UN DATO.
+ * Es la del pueblo de referencia, que puede estar a cientos de metros de
+ * diferencia. Como ese numero decide el umbral del tamizaje, la interfaz debe
+ * pedir confirmacion antes de usarlo.
+ */
+export function deducirDesdeCoordenadas(lat, lon) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+  const distancia = (a, b) => {
+    const R = 6371;
+    const rad = (g) => (g * Math.PI) / 180;
+    const dPhi = rad(b.lat - a.lat);
+    const dLambda = rad(b.lon - a.lon);
+    const h =
+      Math.sin(dPhi / 2) ** 2 +
+      Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLambda / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+  };
+
+  const punto = { lat, lon };
+  let mejor = null;
+  let mejorKm = Infinity;
+
+  for (const e of ESTABLECIMIENTOS) {
+    const km = distancia(punto, e);
+    if (km < mejorKm) {
+      mejorKm = km;
+      mejor = e;
+    }
+  }
+
+  if (!mejor) return null;
+
+  return {
+    departamento: mejor.departamento,
+    referencia: mejor.nombre,
+    distanciaKm: Math.round(mejorKm),
+    altitudSugerida: mejor.altitudMsnm,
+    // Mas alla de unos 60 km el departamento deja de ser fiable: el punto de
+    // referencia mas cercano puede estar del otro lado de una frontera.
+    fiable: mejorKm <= 60,
+  };
+}

@@ -48,9 +48,24 @@
     Cache-Control = "public, max-age=31536000, immutable"
 
 # ---------------------------------------------------------------------------
-# Cabeceras de seguridad. `connect-src` debe incluir la URL del backend: si no,
-# el navegador bloquea las llamadas a /centros-cercanos y la derivación queda
-# en blanco sin decir por qué.
+# Cabeceras de seguridad.
+#
+# Dos directivas son fáciles de romper sin darse cuenta, y las dos fallan SOLO
+# en producción:
+#
+#   connect-src  debe incluir la URL del backend. Si no, el navegador bloquea
+#                las llamadas a /centros-cercanos y la derivación queda en
+#                blanco sin decir por qué.
+#
+#   style-src / font-src  deben incluir Google Fonts. La interfaz usa Inter y
+#                JetBrains Mono desde ahí; sin estos dominios el navegador
+#                bloquea la hoja de estilos y los archivos de fuente, y la
+#                tipografía cae a la del sistema en el servidor aunque en local
+#                se vea bien.
+#
+# `script-src 'self'` sin 'unsafe-inline' es deliberado: obliga a que todo el
+# JavaScript viaje en el bundle. Por eso el registro del service worker está en
+# src/main.jsx y no como <script> en index.html.
 # ---------------------------------------------------------------------------
 [[headers]]
   for = "/*"
@@ -58,4 +73,4 @@
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://cardio-alerta-peru.onrender.com; frame-ancestors 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cardio-alerta-peru.onrender.com; frame-ancestors 'none'"

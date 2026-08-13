@@ -4,6 +4,7 @@ import {
   ESTABLECIMIENTOS,
   guardarUbicacion,
   ubicacionDeEstablecimiento,
+  deducirDesdeCoordenadas,
   ubicacionManual,
   validarCoordenadas,
 } from "./ubicacion.js";
@@ -30,6 +31,7 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
   const [errores, setErrores] = useState({});
   const [mensaje, setMensaje] = useState("");
   const [ubicando, setUbicando] = useState(false);
+  const [sugerencia, setSugerencia] = useState(null);
 
   const aplicar = (nueva) => {
     guardarUbicacion(nueva);
@@ -216,6 +218,34 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
           </div>
 
           {mensaje && <p className="tz-nota">{mensaje}</p>}
+
+          {sugerencia && (
+            <div className={`ubi-sugerencia ${sugerencia.fiable ? "" : "ubi-sugerencia-dudosa"}`}>
+              <p className="ubi-sug-titulo">
+                {sugerencia.fiable
+                  ? `Departamento: ${sugerencia.departamento}`
+                  : `Departamento aproximado: ${sugerencia.departamento}`}
+              </p>
+              <p className="ubi-sug-texto">
+                {`Punto de referencia mas cercano: ${sugerencia.referencia}, a ${sugerencia.distanciaKm} km.`}
+                {!sugerencia.fiable &&
+                  " Esta lejos, asi que el departamento puede no ser el correcto."}
+              </p>
+              <button
+                type="button"
+                className="ubi-sug-boton"
+                onClick={() =>
+                  setBorrador((b) => ({ ...b, altitudMsnm: String(sugerencia.altitudSugerida) }))
+                }
+              >
+                {`Usar ${sugerencia.altitudSugerida} msnm como altitud`}
+              </button>
+              <p className="ubi-sug-aviso">
+                Es la altitud de {sugerencia.referencia}, no la de este establecimiento.
+                Como decide el umbral del tamizaje, verificala antes de guardar.
+              </p>
+            </div>
+          )}
 
           <div className="tz-acciones">
             <button type="button" className="tz-boton tz-boton-pri" onClick={guardarManual}>
@@ -431,6 +461,15 @@ const CSS_UBI = `
   font-weight: 500;
 }
 
+.ubi-sugerencia { margin:12px 0 0; padding:13px; border-radius:10px;
+                  background:var(--campo); border:1px solid var(--linea); }
+.ubi-sugerencia-dudosa { background:var(--ambar-suave); border-color:var(--ambar-linea); }
+.ubi-sug-titulo { margin:0 0 4px; font-size:14px; font-weight:600; color:var(--tinta); }
+.ubi-sug-texto { margin:0 0 10px; font-size:12.5px; color:var(--suave); line-height:1.45; }
+.ubi-sug-boton { background:#fff; border:1px solid var(--linea); border-radius:8px;
+                 padding:8px 13px; font-family:inherit; font-size:13px;
+                 color:var(--marino-alto); cursor:pointer; }
+.ubi-sug-aviso { margin:9px 0 0; font-size:12px; color:var(--ambar); line-height:1.45; }
 .ubi-cancelar {
   display: flex;
   align-items: center;

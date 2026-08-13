@@ -17,16 +17,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
-      // El service worker es lo que permite que el tamizaje funcione sin
-      // conexion. Se registra despues de la carga para no competir con ella.
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker.register("/sw.js").catch(() => {
-            // Sin service worker la app sigue funcionando, solo pierde el offline.
-          });
-        });
-      }
-    </script>
   </body>
 </html>

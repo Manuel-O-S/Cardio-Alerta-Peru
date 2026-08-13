@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import PanelDerivacion from "./PanelDerivacion.jsx";
 import PanelUbicacion from "./PanelUbicacion.jsx";
+import CalculadoraPGE1 from "./CalculadoraPGE1.jsx";
+import CalculadoraHidratacion from "./CalculadoraHidratacion.jsx";
 import { guardarCaso } from "./casosPendientes.js";
 import { leerUbicacion } from "./ubicacion.js";
 import {
@@ -47,6 +49,14 @@ const ESTADO_INICIAL = {
   diagnosticoPrenatalCC: false,
   ronda: 1,
 };
+
+/**
+ * Deja pasar solo letras, espacios, tildes, ñ, apóstrofos y guiones. Se filtra
+ * mientras se escribe y no al validar: así el campo nunca llega a tener un
+ * carácter inválido y no hace falta un mensaje de error.
+ */
+const soloLetras = (v) =>
+  v.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñÜü\s'\-.]/g, "").replace(/\s{2,}/g, " ");
 
 const num = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
 
@@ -146,13 +156,13 @@ export default function FormularioTamizaje({ onCasoGuardado }) {
         </div>
       )}
 
-      {/* ---------------- Paciente ---------------- */}
+      {/* ---------------- 1. Identificacion ---------------- */}
       <section className="tz-card tz-card-1">
         <div className="tz-seccion-cab">
           <span className="tz-paso">1</span>
           <div>
             <h2 className="tz-seccion">{"Identificaci\u00F3n del paciente"}</h2>
-            <p className="tz-seccion-desc">{"Datos b\u00E1sicos del reci\u00E9n nacido"}</p>
+            <p className="tz-seccion-desc">{"Solo lo necesario para identificar el caso"}</p>
           </div>
         </div>
         <div className="tz-fila">
@@ -165,56 +175,30 @@ export default function FormularioTamizaje({ onCasoGuardado }) {
             />
           </Campo>
           <Campo
-            etiqueta="Horas de vida"
-            error={errores.horasDeVida}
-            ayuda={"En horas, no en d\u00EDas"}
+            etiqueta={"Apellido y nombre de la madre"}
+            error={errores.apellidoMaterno}
           >
             <input
-              className={`tz-input tz-mono ${errores.horasDeVida ? "tz-error" : ""}`}
-              type="number"
-              value={f.horasDeVida}
-              onChange={(e) => set("horasDeVida")(e.target.value)}
-              placeholder="30"
+              className={`tz-input ${errores.apellidoMaterno ? "tz-error" : ""}`}
+              value={f.apellidoMaterno}
+              onChange={(e) => set("apellidoMaterno")(soloLetras(e.target.value))}
+              placeholder={"Garc\u00EDa Mendoza, Ana"}
+              autoComplete="off"
             />
           </Campo>
         </div>
-        <Campo etiqueta="Apellido materno (anonimizado)">
-          <input
-            className="tz-input"
-            value={f.apellidoMaterno}
-            onChange={(e) => set("apellidoMaterno")(e.target.value)}
-          />
-        </Campo>
       </section>
 
-      {/* ---------------- Edad gestacional ---------------- */}
+      {/* ---------------- 2. Oximetria ----------------
+          Va primero entre las mediciones a proposito: es el dato que la
+          enfermera acaba de tomar con el oximetro en la mano, y el unico que
+          determina el resultado del tamizaje. Todo lo demas es contexto. */}
       <section className="tz-card tz-card-2">
         <div className="tz-seccion-cab">
           <span className="tz-paso">2</span>
-          <h2 className="tz-seccion">Edad gestacional</h2>
-        </div>
-        <div className="tz-chips">
-          {EDADES_GESTACIONALES.map((eg) => (
-            <button
-              key={eg.etiqueta}
-              type="button"
-              className={`tz-chip ${f.edadGestacionalSem === eg.valor ? "tz-chip-on" : ""}`}
-              onClick={() => set("edadGestacionalSem")(eg.valor)}
-              aria-pressed={f.edadGestacionalSem === eg.valor}
-            >
-              {eg.etiqueta}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* ---------------- Signos vitales ---------------- */}
-      <section className="tz-card tz-card-3">
-        <div className="tz-seccion-cab">
-          <span className="tz-paso">3</span>
           <div>
-            <h2 className="tz-seccion">Signos vitales</h2>
-            <p className="tz-seccion-desc">{"Mediciones de oximetr\u00EDa y constantes"}</p>
+            <h2 className="tz-seccion">{"Saturaci\u00F3n de ox\u00EDgeno"}</h2>
+            <p className="tz-seccion-desc">{"La medici\u00F3n que determina el resultado"}</p>
           </div>
         </div>
         <div className="tz-fila">
@@ -245,7 +229,75 @@ export default function FormularioTamizaje({ onCasoGuardado }) {
             />
           </Campo>
         </div>
+
+        {avisoCritico && (
+          <p className="tz-alerta tz-alerta-glow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            {`SpO\u2082 por debajo del umbral cr\u00EDtico de la banda ${banda.id} (<${banda.spo2Critico}%)`}
+          </p>
+        )}
+        {f.spo2Preductal !== "" && f.spo2Postductal === "" && (
+          <p className="tz-nota">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {"Falta la medici\u00F3n en el pie. Sin ella no se puede evaluar la diferencia preductal-postductal y el tamizaje queda incompleto."}
+          </p>
+        )}
+      </section>
+
+      {/* ---------------- 3. Datos del recien nacido ----------------
+          Horas de vida, edad gestacional, peso, FC y FR. Ninguno altera el
+          resultado del tamizaje: generan avisos y elegibilidad. Por eso van
+          despues de la oximetria. */}
+      <section className="tz-card tz-card-3">
+        <div className="tz-seccion-cab">
+          <span className="tz-paso">3</span>
+          <div>
+            <h2 className="tz-seccion">{"Datos del reci\u00E9n nacido"}</h2>
+            <p className="tz-seccion-desc">{"Contexto cl\u00EDnico. No alteran el resultado del tamizaje"}</p>
+          </div>
+        </div>
+
+        <Campo
+          etiqueta="Horas de vida"
+          error={errores.horasDeVida}
+          ayuda={"En horas, no en d\u00EDas"}
+        >
+          <input
+            className={`tz-input tz-mono ${errores.horasDeVida ? "tz-error" : ""}`}
+            type="number"
+            value={f.horasDeVida}
+            onChange={(e) => set("horasDeVida")(e.target.value)}
+            placeholder="30"
+          />
+        </Campo>
+
+        <div className="tz-campo">
+          <label className="tz-label">Edad gestacional</label>
+          <div className="tz-chips">
+            {EDADES_GESTACIONALES.map((eg) => (
+              <button
+                key={eg.etiqueta}
+                type="button"
+                className={`tz-chip ${f.edadGestacionalSem === eg.valor ? "tz-chip-on" : ""}`}
+                onClick={() => set("edadGestacionalSem")(eg.valor)}
+                aria-pressed={f.edadGestacionalSem === eg.valor}
+              >
+                {eg.etiqueta}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="tz-fila">
+          <Campo etiqueta="Peso (kg)" error={errores.pesoKg}>
+            <input
+              className={`tz-input tz-mono ${errores.pesoKg ? "tz-error" : ""}`}
+              type="number"
+              step="0.1"
+              value={f.pesoKg}
+              onChange={(e) => set("pesoKg")(e.target.value)}
+            />
+          </Campo>
           <Campo etiqueta="FC (lpm)" error={errores.fcLpm}>
             <input
               className={`tz-input tz-mono ${errores.fcLpm ? "tz-error" : ""}`}
@@ -262,32 +314,9 @@ export default function FormularioTamizaje({ onCasoGuardado }) {
               onChange={(e) => set("frRpm")(e.target.value)}
             />
           </Campo>
-          <Campo etiqueta="Peso (kg)" error={errores.pesoKg}>
-            <input
-              className={`tz-input tz-mono ${errores.pesoKg ? "tz-error" : ""}`}
-              type="number"
-              step="0.1"
-              value={f.pesoKg}
-              onChange={(e) => set("pesoKg")(e.target.value)}
-            />
-          </Campo>
         </div>
-
-        {avisoCritico && (
-          <p className="tz-alerta tz-alerta-glow">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            {`SpO\u2082 por debajo del umbral cr\u00EDtico de la banda ${banda.id} (<${banda.spo2Critico}%)`}
-          </p>
-        )}
-        {f.spo2Preductal !== "" && f.spo2Postductal === "" && (
-          <p className="tz-nota">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            {"Falta la medici\u00F3n en el pie. Sin ella no se puede evaluar la diferencia preductal-postductal y el tamizaje queda incompleto."}
-          </p>
-        )}
       </section>
 
-      {/* ---------------- Sintomas ---------------- */}
       <section className="tz-card tz-card-4">
         <div className="tz-seccion-cab">
           <span className="tz-paso">4</span>
@@ -359,6 +388,21 @@ export default function FormularioTamizaje({ onCasoGuardado }) {
 
       {/* La derivacion solo aparece cuando hace falta: tamizaje no superado, o
           recien nacido sintomatico que necesita evaluacion inmediata. */}
+      {/* Con tamizaje no superado o recien nacido sintomatico: las dos
+          calculadoras que hacen falta mientras se organiza el traslado. */}
+      {salida?.ok &&
+        (salida.resultado === Resultado.POSITIVO ||
+          salida.resultado === Resultado.NO_ELEGIBLE) && (
+          <>
+            <CalculadoraPGE1 pesoInicial={num(f.pesoKg)} />
+            <CalculadoraHidratacion
+              pesoInicial={num(f.pesoKg)}
+              horasInicial={num(f.horasDeVida)}
+              edadGestacionalInicial={ubicacion ? f.edadGestacionalSem : null}
+            />
+          </>
+        )}
+
       {salida?.ok &&
         (salida.resultado === Resultado.POSITIVO ||
           salida.resultado === Resultado.NO_ELEGIBLE) && (
@@ -479,6 +523,25 @@ function PanelResultado({ salida, onSiguienteRonda, onGuardarPendiente, guardado
         <p className="tz-res-dato">
           {"Diferencia preductal \u2212 postductal: "}{salida.diferenciaSpo2}{" puntos"}
         </p>
+      )}
+
+      {/* El recordatorio va destacado a proposito: un "repetir" que nadie
+          repite es un caso perdido, y el cambio de turno es donde se pierden.
+          Con el aviso discreto, la enfermera cerraba la pantalla y el caso
+          desaparecia. */}
+      {salida.proximaRonda && (
+        <div className="tz-recordatorio">
+          <div className="tz-recordatorio-cab">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span className="tz-recordatorio-tiempo tz-mono">{salida.minutosEspera} min</span>
+          </div>
+          <p className="tz-recordatorio-texto">
+            {"Repetir la medici\u00F3n en "}
+            <strong>{salida.minutosEspera} minutos</strong>
+            {" (ronda "}{salida.proximaRonda}{" de 3). Gu\u00E1rdalo en pendientes: "}
+            {"as\u00ED el caso sobrevive al cambio de turno y la app avisa cuando toque."}
+          </p>
+        </div>
       )}
 
       {salida.proximaRonda && (
@@ -982,6 +1045,14 @@ const CSS = `
 
 /* --- Derivation panel shared styles --- */
 .tz-banda-prov { color: var(--ambar); }
+.tz-recordatorio { margin:16px 0 4px; padding:15px 16px; border-radius:12px;
+                   background:var(--ambar-suave); border:1px solid var(--ambar-linea);
+                   border-left:4px solid var(--ambar); }
+.tz-recordatorio-cab { display:flex; align-items:center; gap:9px; color:var(--ambar);
+                       margin-bottom:8px; }
+.tz-recordatorio-tiempo { font-size:22px; font-weight:700; letter-spacing:-.01em;
+                          font-variant-numeric:tabular-nums; }
+.tz-recordatorio-texto { margin:0; font-size:13.5px; line-height:1.55; color:var(--tinta); }
 .tz-deriv { border-color: var(--linea); }
 
 .tz-centros { list-style: none; margin: 14px 0 0; padding: 0; }

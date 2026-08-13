@@ -15,7 +15,9 @@ export default function PanelPendientes({ onCambio }) {
 
   useEffect(() => {
     recargar();
-    const t = setInterval(() => setAhora(Date.now()), 30000);
+    // Cada segundo: el contador tiene que correr de verdad, si no parece
+    // que la aplicacion se colgo.
+    const t = setInterval(() => setAhora(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -80,7 +82,14 @@ export default function PanelPendientes({ onCambio }) {
                   {t.vencido && (
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                   )}
-                  {t.texto}
+                  {t.vencido ? (
+                    t.texto
+                  ) : (
+                    <>
+                      <span className="pend-reloj tz-mono">{t.reloj}</span>
+                      <span className="pend-reloj-nota">para reevaluar</span>
+                    </>
+                  )}
                 </span>
               </div>
               <button type="button" className="pend-quitar" onClick={() => quitar(c.id)}>
@@ -201,6 +210,9 @@ const CSS_PEND = `
   font-family: 'JetBrains Mono', ui-monospace, monospace;
 }
 
+.pend-reloj { font-size:16px; font-weight:600; letter-spacing:.02em;
+             font-variant-numeric: tabular-nums; }
+.pend-reloj-nota { font-size:11px; opacity:.75; }
 .pend-tiempo-on {
   color: var(--rojo);
   font-weight: 700;
