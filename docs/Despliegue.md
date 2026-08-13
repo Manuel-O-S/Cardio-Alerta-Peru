@@ -105,8 +105,12 @@ En Render, **Environment → `ORIGENES_PERMITIDOS`**: poner la URL real de
 Netlify, sin barra final.
 
 ```
-https://TU-SITIO.netlify.app
+https://chimerical-medovik-10895c.netlify.app
 ```
+
+> Esa URL ya está como valor por defecto en `app/main.py` y en `render.yaml`,
+> así que funciona aunque nadie configure la variable. Si el sitio se renombra
+> en Netlify, hay que actualizar la variable en Render.
 
 Render reinicia solo al guardar.
 
@@ -157,6 +161,8 @@ falla.
 |---|---|
 | Netlify: "build command failed" | Falta `package-lock.json` en el repo; `npm ci` lo necesita |
 | La web carga pero la derivación queda vacía | CORS: `ORIGENES_PERMITIDOS` no tiene la URL exacta de Netlify |
+| "Failed to fetch" al guardar datos sin conexión | Lo mismo. El navegador bloquea antes de salir y `fetch` no distingue eso de "no hay red". Ver la consola (F12): el error de CORS aparece con todas las letras |
+| "Usar mi ubicación" no hace nada | Permiso de ubicación denegado. La app ahora lo dice y explica cómo activarlo desde el candado |
 | Consola: "Refused to connect" | `connect-src` de la CSP no incluye la URL del backend |
 | `/health` dice `base_datos: error` | `DATABASE_URL` mal, o Supabase pausado. El servicio funciona igual con el JSON |
 | El modo offline no activa | El service worker no se registró. Revisar que la CSP no bloquee el bundle |

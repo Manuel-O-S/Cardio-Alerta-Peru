@@ -86,6 +86,7 @@ Netlify. Por defecto apunta a `https://cardio-alerta-peru.onrender.com`.
 | `src/tamizaje/casosPendientes.js` | Persistencia del retamizaje |
 | `src/tamizaje/AvisoDatosOffline.jsx` | Pide permiso antes de guardar datos en el dispositivo |
 | `src/tamizaje/datosOffline.js` | Descarga, búsqueda local y borrado de la copia |
+| `src/tamizaje/geolocalizacion.js` | Ubicación del dispositivo, con mensaje distinto por cada causa de fallo |
 | `src/tamizaje/PanelUbicacion.jsx` | Configura dónde está el establecimiento |
 | `src/tamizaje/ubicacion.js` | Catálogo, persistencia y validación de coordenadas |
 | `src/tamizaje/motorTamizaje.js` | El motor. Sin dependencias. |

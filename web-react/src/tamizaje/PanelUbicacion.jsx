@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { describirPrecision, obtenerUbicacion } from "./geolocalizacion.js";
 import {
   ESTABLECIMIENTOS,
   guardarUbicacion,
@@ -52,26 +53,34 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
     aplicar(ubicacionManual(borrador));
   };
 
-  const ubicarme = () => {
-    if (!navigator.geolocation) {
-      setMensaje("Este dispositivo no permite obtener la ubicacion.");
+  const [ubicando, setUbicando] = useState(false);
+
+  /**
+   * Toma las coordenadas del GPS. La altitud NO: el GPS la informa, pero bajo
+   * techo es poco confiable, y acá ese numero decide que umbral de saturacion
+   * se le aplica al recien nacido. Se escribe a mano a proposito.
+   */
+  const ubicarme = async () => {
+    setUbicando(true);
+    setMensaje("Pidiendo permiso de ubicacion…");
+
+    const r = await obtenerUbicacion();
+    setUbicando(false);
+
+    if (!r.ok) {
+      setMensaje(r.mensaje);
       return;
     }
-    setMensaje("Obteniendo ubicacion…");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setBorrador((b) => ({
-          ...b,
-          lat: pos.coords.latitude.toFixed(4),
-          lon: pos.coords.longitude.toFixed(4),
-        }));
-        setMensaje(
-          "Coordenadas tomadas del GPS. La altitud escribila a mano: la del GPS " +
-            "es poco confiable bajo techo, y define el umbral del tamizaje."
-        );
-      },
-      () => setMensaje("No se pudo obtener la ubicacion. Escribi las coordenadas."),
-      { timeout: 8000 }
+
+    setBorrador((b) => ({ ...b, lat: String(r.lat), lon: String(r.lon) }));
+    setErrores((e) => ({ ...e, lat: undefined, lon: undefined }));
+
+    const precision = describirPrecision(r.precisionM);
+    setMensaje(
+      r.fueraDelPeru
+        ? r.mensajeAviso
+        : `Coordenadas tomadas del GPS${precision ? ` · ${precision}` : ""}. ` +
+          "La altitud escribila a mano: define el umbral del tamizaje."
     );
   };
 
@@ -203,8 +212,13 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
             <button type="button" className="tz-boton" onClick={guardarManual}>
               Guardar ubicacion
             </button>
-            <button type="button" className="tz-boton tz-boton-sec" onClick={ubicarme}>
-              Usar GPS para las coordenadas
+            <button
+              type="button"
+              className="tz-boton tz-boton-sec"
+              onClick={ubicarme}
+              disabled={ubicando}
+            >
+              {ubicando ? "Ubicando…" : "Usar GPS para las coordenadas"}
             </button>
           </div>
         </>

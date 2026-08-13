@@ -26,7 +26,8 @@ _origenes = os.getenv("ORIGENES_PERMITIDOS", "").strip()
 origenes = [o.strip() for o in _origenes.split(",") if o.strip()] or [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://cardio-alerta-peru.netlify.app",
+    "https://chimerical-medovik-10895c.netlify.app",                      # sitio actual en Netlify
+    "https://cardio-alerta-peru.netlify.app",  # si se renombra el sitio
 ]
 
 app.add_middleware(

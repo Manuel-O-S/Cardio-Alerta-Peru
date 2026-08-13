@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import AvisoDatosOffline from "./AvisoDatosOffline.jsx";
 import { buscarLocal, hayDatos } from "./datosOffline.js";
+import { describirPrecision, obtenerUbicacion } from "./geolocalizacion.js";
 
 /**
  * Derivacion: donde llevar al recien nacido cuando el tamizaje no se supera.
@@ -56,7 +57,7 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
   // deberia requerir pulsar otro boton.
   useEffect(() => {
     if (latInicial != null && lonInicial != null) {
-      buscar();
+      buscar({ latForzada: latInicial, lonForzada: lonInicial });
       return;
     }
     const cache = leerCache();
@@ -68,37 +69,57 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const ubicarme = () => {
-    if (!navigator.geolocation) {
-      setMensaje("Este dispositivo no permite obtener la ubicacion. Escribe las coordenadas.");
+  const [ubicando, setUbicando] = useState(false);
+
+  /**
+   * Pide la ubicacion al navegador y, si la obtiene, busca de inmediato: quien
+   * pulsa este boton quiere ver hospitales, no rellenar dos campos.
+   */
+  const ubicarme = async () => {
+    setUbicando(true);
+    setMensaje("Pidiendo permiso de ubicacion…");
+
+    const r = await obtenerUbicacion();
+    setUbicando(false);
+
+    if (!r.ok) {
+      setMensaje(r.mensaje);
       return;
     }
-    setMensaje("Obteniendo ubicacion…");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude.toFixed(4));
-        setLon(pos.coords.longitude.toFixed(4));
-        setMensaje("");
-      },
-      () => setMensaje("No se pudo obtener la ubicacion. Escribe las coordenadas del establecimiento."),
-      { timeout: 8000 }
+
+    setLat(String(r.lat));
+    setLon(String(r.lon));
+
+    const precision = describirPrecision(r.precisionM);
+    setMensaje(
+      r.fueraDelPeru
+        ? r.mensajeAviso
+        : `Ubicacion obtenida${precision ? ` · ${precision}` : ""}.`
     );
+
+    // Se buscan los hospitales con las coordenadas recien obtenidas, sin
+    // esperar a que React actualice el estado.
+    buscar({ latForzada: r.lat, lonForzada: r.lon, conservarMensaje: true });
   };
 
-  const buscar = async () => {
-    if (lat === "" || lon === "") {
+  const buscar = async ({ latForzada, lonForzada, conservarMensaje = false } = {}) => {
+    const laLat = latForzada ?? lat;
+    const laLon = lonForzada ?? lon;
+    if (laLat === "" || laLon === "" || laLat == null || laLon == null) {
       setMensaje("Faltan las coordenadas del establecimiento.");
       return;
     }
     setEstado("cargando");
-    setMensaje("");
+    // Al venir de "usar mi ubicacion" ya hay un mensaje util en pantalla (la
+    // precision obtenida); limpiarlo aca lo haria desaparecer al instante.
+    if (!conservarMensaje) setMensaje("");
 
     // Si la persona autorizo guardar los hospitales, se busca en el
     // dispositivo: es instantaneo y funciona sin conexion. El servidor solo
     // hace falta cuando no hay datos guardados.
     const local = buscarLocal({
-      lat: Number(lat),
-      lon: Number(lon),
+      lat: Number(laLat),
+      lon: Number(laLon),
       limite: 5,
       tipoSeguro: seguro,
       soloDisponibles: !verOcupados,
@@ -111,8 +132,8 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
     }
 
     const params = new URLSearchParams({
-      lat,
-      lon,
+      lat: String(laLat),
+      lon: String(laLon),
       limite: "5",
       solo_disponibles: verOcupados ? "false" : "true",
     });
@@ -194,11 +215,16 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
       </div>
 
       <div className="tz-acciones">
-        <button type="button" className="tz-boton" onClick={buscar} disabled={estado === "cargando"}>
+        <button type="button" className="tz-boton" onClick={() => buscar()} disabled={estado === "cargando"}>
           {estado === "cargando" ? "Buscando…" : "Buscar centros"}
         </button>
-        <button type="button" className="tz-boton tz-boton-sec" onClick={ubicarme}>
-          Usar mi ubicacion
+        <button
+          type="button"
+          className="tz-boton tz-boton-sec"
+          onClick={ubicarme}
+          disabled={ubicando}
+        >
+          {ubicando ? "Ubicando…" : "Usar mi ubicacion"}
         </button>
       </div>
 

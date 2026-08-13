@@ -40,4 +40,4 @@ services:
       # Orígenes autorizados a llamar la API, separados por comas.
       # Reemplazar por la URL real de Netlify una vez desplegada la web.
       - key: ORIGENES_PERMITIDOS
-        value: "http://localhost:5173,https://cardio-alerta-peru.netlify.app"
+        value: "http://localhost:5173,https://chimerical-medovik-10895c.netlify.app"

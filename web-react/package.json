@@ -10,6 +10,7 @@
     "test": "node src/tamizaje/motorTamizaje.test.js"
   },
   "dependencies": {
+    "@babel/parser": "^8.0.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "vite-node": "^6.0.0"
