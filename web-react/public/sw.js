@@ -11,8 +11,8 @@
  *     confusion sobre que tan viejos son los datos.
  */
 
-const CACHE = "cardio-alerta-v2";
-const ESENCIALES = ["/", "/index.html", "/manifest.webmanifest"];
+const CACHE = "cardio-alerta-v3";
+const ESENCIALES = ["/", "/index.html", "/manifest.webmanifest", "/favicon.svg"];
 
 // Google Fonts. Se guardan tras la primera carga para que la tipografia de la
 // interfaz tambien funcione sin conexion; si no, sin señal la app cae a las

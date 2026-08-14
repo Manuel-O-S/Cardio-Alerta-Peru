@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Cardio Alerta Peru">
+  <!-- Fondo redondeado en el marino de la marca. Se dibuja el corazon en vez
+       de usar el emoji: el emoji lo pinta cada sistema a su manera y a 16 px
+       queda irreconocible. -->
+  <rect width="64" height="64" rx="14" fill="#1e293b"/>
+  <path
+    d="M32 51.5 L28.1 47.9 C15.2 36.2 6.7 28.5 6.7 19.1 C6.7 11.4 12.7 5.5 20.4 5.5 C24.7 5.5 28.9 7.5 31.6 10.7 C34.3 7.5 38.5 5.5 42.8 5.5 C50.5 5.5 56.5 11.4 56.5 19.1 C56.5 28.5 48 36.2 35.1 47.9 L32 51.5 Z"
+    fill="#e2453a"
+    transform="translate(0, 3) scale(0.88) translate(4.4, 3)"
+  />
+</svg>

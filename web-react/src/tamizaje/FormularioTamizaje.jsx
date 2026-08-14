@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import PanelDerivacion from "./PanelDerivacion.jsx";
 import PanelUbicacion from "./PanelUbicacion.jsx";
+import AyudaSensores from "./AyudaSensores.jsx";
 import CalculadoraPGE1 from "./CalculadoraPGE1.jsx";
 import CalculadoraHidratacion from "./CalculadoraHidratacion.jsx";
 import { datosParaRetomar, eliminarCaso, guardarCaso } from "./casosPendientes.js";
@@ -256,12 +257,14 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
             <h2 className="tz-seccion">Signos vitales</h2>
             <p className="tz-seccion-desc">{"La saturaci\u00F3n determina el resultado"}</p>
           </div>
+          {/* La duda real no es que significa "preductal", sino donde va el
+              sensor. Una foto lo resuelve sin ocupar sitio hasta que se pide. */}
+          <AyudaSensores />
         </div>
 
         <div className="tz-fila">
           <Campo
             etiqueta={`SpO\u2082 preductal (%)`}
-            ayuda="Mano derecha"
             error={errores.spo2Preductal}
           >
             <input
@@ -274,7 +277,6 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
           </Campo>
           <Campo
             etiqueta={`SpO\u2082 postductal (%)`}
-            ayuda="Cualquier pie"
             error={errores.spo2Postductal}
           >
             <input
@@ -637,7 +639,7 @@ const CSS = `
 .tz-card-4 { animation-delay: 0.20s; }
 
 /* --- Section headers with step numbers --- */
-.tz-seccion-cab {
+.tz-seccion-cab { justify-content:space-between;
   display: flex;
   align-items: center;
   gap: 12px;
