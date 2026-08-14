@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * Ayuda visual sobre donde va cada sensor.
@@ -14,8 +15,43 @@ import { useEffect, useRef, useState } from "react";
  */
 export default function AyudaSensores() {
   const [abierta, setAbierta] = useState(false);
+  const [pos, setPos] = useState(null);
   const cajaRef = useRef(null);
   const botonRef = useRef(null);
+
+  /**
+   * La ventana se dibuja con createPortal, fuera de la tarjeta.
+   *
+   * POR QUE: la tarjeta del formulario usa `backdrop-filter`, y un elemento con
+   * filtro RECORTA a sus hijos posicionados. Con la ventana dentro, la imagen
+   * se cortaba justo en el borde de la tarjeta. Sacarla al body y posicionarla
+   * con coordenadas fijas la libera de ese recorte.
+   */
+  const abrir = () => {
+    if (abierta) {
+      setAbierta(false);
+      return;
+    }
+    const r = botonRef.current.getBoundingClientRect();
+    const anchoVentana = window.innerWidth;
+    const ANCHO = Math.min(440, anchoVentana - 32);
+    // Anclada al boton, pero sin salirse por el borde derecho.
+    const izquierda = Math.max(16, Math.min(r.right - ANCHO, anchoVentana - ANCHO - 16));
+    setPos({ top: r.bottom + 8, left: izquierda, ancho: ANCHO });
+    setAbierta(true);
+  };
+
+  // Al desplazar o cambiar el tamano, la ventana quedaria descolgada del boton.
+  useEffect(() => {
+    if (!abierta) return;
+    const cerrar = () => setAbierta(false);
+    window.addEventListener("scroll", cerrar, { passive: true });
+    window.addEventListener("resize", cerrar);
+    return () => {
+      window.removeEventListener("scroll", cerrar);
+      window.removeEventListener("resize", cerrar);
+    };
+  }, [abierta]);
 
   // Cerrar con Escape o pulsando fuera: en una pantalla pequeña la ventana
   // tapa el formulario y tiene que quitarse de en medio facilmente.
@@ -54,7 +90,7 @@ export default function AyudaSensores() {
         ref={botonRef}
         type="button"
         className={`ayu-boton ${abierta ? "ayu-boton-on" : ""}`}
-        onClick={() => setAbierta(!abierta)}
+        onClick={abrir}
         aria-expanded={abierta}
         aria-label="Ver donde se coloca cada sensor"
         title="Donde va cada sensor"
@@ -76,8 +112,14 @@ export default function AyudaSensores() {
         </svg>
       </button>
 
-      {abierta && (
-        <div className="ayu-caja" ref={cajaRef} role="dialog" aria-label="Colocacion de los sensores">
+      {abierta && pos && createPortal(
+        <div
+          className="ayu-caja"
+          ref={cajaRef}
+          role="dialog"
+          aria-label="Colocacion de los sensores"
+          style={{ top: pos.top, left: pos.left, width: pos.ancho }}
+        >
           <div className="ayu-caja-cab">
             <span className="ayu-caja-titulo">{"Colocaci\u00F3n de los sensores"}</span>
             <button
@@ -109,7 +151,8 @@ export default function AyudaSensores() {
           <p className="ayu-nota">
             {"La diferencia entre ambas mediciones es lo que detecta las lesiones en las que la mano derecha satura normal y el pie no."}
           </p>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -128,8 +171,9 @@ const CSS_AYU = `
                 color:#fff; }
 .ayu-boton:focus-visible { outline:2px solid var(--acento, #3b82f6); outline-offset:2px; }
 
-.ayu-caja { position:absolute; top:40px; right:0; z-index:40;
-            width:min(440px, calc(100vw - 40px));
+/* position:fixed y en el body: asi ningun ancestro con filtro puede recortarla.
+   Las coordenadas las calcula el componente a partir del boton. */
+.ayu-caja { position:fixed; z-index:200;
             background:var(--carta-solida, #fff); border:1px solid var(--linea);
             border-radius:14px; box-shadow:0 12px 32px rgba(15,23,42,.16);
             padding:14px; animation:ayuAparece .18s ease-out both; }
@@ -150,9 +194,12 @@ const CSS_AYU = `
 
 /* En pantallas pequeñas la ventana se centra en vez de colgar del boton:
    anclada a la derecha se saldria del borde. */
-@media (max-width: 520px) {
-  .ayu-caja { position:fixed; top:auto; bottom:16px; left:16px; right:16px;
-              width:auto; max-height:80vh; overflow-y:auto; }
+/* En pantallas pequeñas la ventana se ancla abajo: colgando del boton se
+   saldria por el borde inferior. */
+@media (max-width: 560px) {
+  .ayu-caja { top:auto !important; bottom:16px; left:16px !important;
+              right:16px; width:auto !important; max-height:82vh;
+              overflow-y:auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   .ayu-caja { animation:none; }

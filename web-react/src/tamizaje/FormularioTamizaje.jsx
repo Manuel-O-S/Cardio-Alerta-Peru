@@ -639,12 +639,19 @@ const CSS = `
 .tz-card-4 { animation-delay: 0.20s; }
 
 /* --- Section headers with step numbers --- */
-.tz-seccion-cab { justify-content:space-between;
+.tz-seccion-cab {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
 }
+
+  /* El icono de ayuda se va al extremo derecho con margen automatico, no con
+     justify-content en el contenedor: eso ultimo separaba tambien el titulo
+     del numero de paso. */
+  .tz-seccion-cab > .ayu {
+    margin-left: auto;
+  }
 
 .tz-paso {
   width: 32px;
