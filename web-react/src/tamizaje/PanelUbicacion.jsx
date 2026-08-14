@@ -59,6 +59,7 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
   const ubicarme = async () => {
     setUbicando(true);
     setMensaje("Pidiendo permiso de ubicaci\u00F3n\u2026");
+    setSugerencia(null);
 
     const r = await obtenerUbicacion();
     setUbicando(false);
@@ -71,12 +72,20 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
     setBorrador((b) => ({ ...b, lat: String(r.lat), lon: String(r.lon) }));
     setErrores((e) => ({ ...e, lat: undefined, lon: undefined }));
 
+    if (r.fueraDelPeru) {
+      setMensaje(r.mensajeAviso);
+      return;
+    }
+
     const precision = describirPrecision(r.precisionM);
+    const sug = deducirDesdeCoordenadas(r.lat, r.lon);
+    setSugerencia(sug);
+
     setMensaje(
-      r.fueraDelPeru
-        ? r.mensajeAviso
-        : `Coordenadas tomadas del GPS${precision ? ` \u00B7 ${precision}` : ""}. ` +
-          "La altitud escr\u00EDbela a mano: define el umbral del tamizaje."
+      `Coordenadas tomadas del GPS${precision ? ` \u00B7 ${precision}` : ""}. ` +
+      (sug
+        ? "Revis\u00E1 la altitud sugerida abajo antes de guardar: define el umbral del tamizaje."
+        : "No se pudo sugerir una altitud autom\u00E1ticamente para esta zona: escrib\u00EDla a mano.")
     );
   };
 
