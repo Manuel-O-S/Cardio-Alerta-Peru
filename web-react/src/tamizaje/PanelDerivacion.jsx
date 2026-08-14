@@ -300,6 +300,32 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
 /**
  * El hospital al que se deriva.
  */
+/**
+ * Enlace de ruta a Google Maps.
+ *
+ * POR QUE NO SE USAN LAS COORDENADAS
+ * Las coordenadas de la base son aproximadas: varias corresponden al centro
+ * del distrito, no al establecimiento. Tres hospitales de Lima comparten el
+ * mismo punto, y dos registros tienen un solo decimal (~11 km de margen). Un
+ * enlace con `destination=lat,lon` deja la ruta cerca pero no en la puerta.
+ *
+ * Google resuelve mucho mejor el NOMBRE del establecimiento. Se manda el
+ * nombre + direccion + pais como texto y Google lo geocodifica contra su
+ * propio registro de lugares, que si tiene la ubicacion real.
+ *
+ * Las coordenadas siguen usandose para ordenar por cercania, que es su unico
+ * uso valido mientras no se corrijan.
+ */
+function urlRuta(c) {
+  const destino = [c.nombre, c.direccion, "Peru"].filter(Boolean).join(", ");
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destino)}`;
+}
+
+/** Enlace de respaldo por coordenadas, si Google no encuentra el nombre. */
+function urlRutaCoordenadas(c) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lon}`;
+}
+
 function CentroDestacado({ centro: c }) {
   const disponible = c.status?.toLowerCase() === "disponible";
   const ocupado = c.status?.toLowerCase() === "ocupado";
@@ -332,20 +358,28 @@ function CentroDestacado({ centro: c }) {
         <div><dt>Red</dt><dd>{c.iafas}</dd></div>
         <div className="dest-ancho"><dt>Capacidad</dt><dd>{c.especialidad}</dd></div>
         <div className="dest-ancho">
-          <dt>Coordenadas</dt>
+          <dt>{"Coordenadas aprox."}</dt>
           <dd className="tz-mono">{c.lat}, {c.lon}</dd>
         </div>
       </dl>
 
-      <a
-        className="dest-mapa"
-        href={`https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lon}`}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-        Abrir ruta en el mapa
-      </a>
+      <div className="dest-mapa-fila">
+        <a className="dest-mapa" href={urlRuta(c)} target="_blank" rel="noopener noreferrer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+          Abrir ruta en el mapa
+        </a>
+        <a
+          className="dest-mapa-alt"
+          href={urlRutaCoordenadas(c)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {"Buscar por coordenadas"}
+        </a>
+      </div>
+      <p className="dest-mapa-nota">
+        {"La ruta busca el establecimiento por su nombre. Las coordenadas guardadas son aproximadas \u2014 sirven para ordenar por cercan\u00EDa, no para llegar a la puerta."}
+      </p>
     </div>
   );
 }
@@ -514,6 +548,26 @@ const CSS_DERIV = `
   line-height: 1.4;
   color: var(--tinta);
   overflow-wrap: anywhere;
+}
+
+.dest-mapa-fila {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.dest-mapa-alt {
+  font-size: 12.5px;
+  color: var(--suave);
+  text-decoration: underline;
+}
+
+.dest-mapa-nota {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--tenue);
+  line-height: 1.45;
 }
 
 .dest-mapa {

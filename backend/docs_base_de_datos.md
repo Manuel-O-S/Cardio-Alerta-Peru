@@ -122,6 +122,20 @@ Devolver los ocupados cuando no hay disponibles es deliberado: una pantalla
 vacía sería peor que una opción ocupada, porque el equipo puede llamar y
 confirmar.
 
+> **Pendiente: las coordenadas son de distrito, no de establecimiento.**
+> De los 25 hospitales, solo hay 19 coordenadas distintas: el INCOR, el
+> Rebagliati y el Hospital Militar comparten exactamente el mismo punto, igual
+> que el INSN San Borja con la Clínica Internacional. Dos registros tienen un
+> solo decimal (±11 km).
+>
+> Consecuencia: sirven para **ordenar por cercanía**, que es su uso actual, pero
+> no para trazar una ruta hasta la puerta. Por eso el enlace del mapa busca por
+> **nombre del establecimiento** y no por coordenadas.
+>
+> Para corregirlas: buscar cada hospital en Google Maps, botón derecho sobre el
+> marcador, "¿Qué hay aquí?", y copiar las coordenadas con 5-6 decimales. Son 25
+> búsquedas y arregla el problema de raíz.
+
 ### `tamizajes`
 
 **No guarda datos identificables del recién nacido**: ni nombre, ni apellido, ni
