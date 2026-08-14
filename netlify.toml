@@ -55,7 +55,11 @@
 #
 #   connect-src  debe incluir la URL del backend. Si no, el navegador bloquea
 #                las llamadas a /centros-cercanos y la derivación queda en
-#                blanco sin decir por qué.
+#                blanco sin decir por qué. Lo mismo pasa con los dos servicios
+#                de altitud exacta (open-elevation.com y open-meteo.com): si
+#                no están acá, la altitud automática cae siempre al método
+#                offline aproximado aunque haya internet, y nadie ve un error
+#                en pantalla — el fetch simplemente nunca sale.
 #
 #   style-src / font-src  deben incluir Google Fonts. La interfaz usa Inter y
 #                JetBrains Mono desde ahí; sin estos dominios el navegador
@@ -73,4 +77,4 @@
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cardio-alerta-peru.onrender.com; frame-ancestors 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://cardio-alerta-peru.onrender.com https://api.open-elevation.com https://api.open-meteo.com; frame-ancestors 'none'"

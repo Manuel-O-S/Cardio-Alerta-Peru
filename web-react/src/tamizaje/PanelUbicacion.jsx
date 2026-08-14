@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { describirPrecision, obtenerUbicacion } from "./geolocalizacion.js";
+import { obtenerAltitudExacta } from "./elevacion.js";
 import {
   ESTABLECIMIENTOS,
   guardarUbicacion,
@@ -62,9 +63,9 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
     setSugerencia(null);
 
     const r = await obtenerUbicacion();
-    setUbicando(false);
 
     if (!r.ok) {
+      setUbicando(false);
       setMensaje(r.mensaje);
       return;
     }
@@ -73,19 +74,48 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
     setErrores((e) => ({ ...e, lat: undefined, lon: undefined }));
 
     if (r.fueraDelPeru) {
+      setUbicando(false);
       setMensaje(r.mensajeAviso);
       return;
     }
 
     const precision = describirPrecision(r.precisionM);
+
+    // 1) Intento la altitud EXACTA por servicio (SRTM). Requiere internet.
+    setMensaje(
+      `Coordenadas tomadas del GPS${precision ? ` \u00B7 ${precision}` : ""}. ` +
+        "Buscando la altitud exacta\u2026"
+    );
+    const exacta = await obtenerAltitudExacta(r.lat, r.lon);
+    setUbicando(false);
+
+    if (exacta.ok) {
+      setBorrador((b) => ({ ...b, altitudMsnm: String(exacta.altitudMsnm) }));
+      setSugerencia(null);
+      setMensaje(
+        `Coordenadas tomadas del GPS${precision ? ` \u00B7 ${precision}` : ""}. ` +
+          `Altitud exacta obtenida por servicio de elevaci\u00F3n: ${exacta.altitudMsnm} msnm. ` +
+          "Verific\u00E1la antes de guardar: define el umbral del tamizaje."
+      );
+      return;
+    }
+
+    // 2) Sin internet o el servicio fall\u00F3: caigo al respaldo offline (punto
+    // de referencia m\u00E1s cercano de los 13 conocidos), como antes.
     const sug = deducirDesdeCoordenadas(r.lat, r.lon);
     setSugerencia(sug);
 
+    const razon =
+      exacta.motivo === "sin_conexion" || exacta.motivo === "tiempo_agotado"
+        ? "no hay conexi\u00F3n para pedir la altitud exacta"
+        : "el servicio de altitud exacta no respondi\u00F3";
+
     setMensaje(
       `Coordenadas tomadas del GPS${precision ? ` \u00B7 ${precision}` : ""}. ` +
-      (sug
-        ? "Revis\u00E1 la altitud sugerida abajo antes de guardar: define el umbral del tamizaje."
-        : "No se pudo sugerir una altitud autom\u00E1ticamente para esta zona: escrib\u00EDla a mano.")
+        `${razon.charAt(0).toUpperCase()}${razon.slice(1)}, as\u00ED que ` +
+        (sug
+          ? "te dejo una altitud aproximada abajo: revis\u00E1la antes de guardar."
+          : "escrib\u00ED la altitud a mano.")
     );
   };
 
