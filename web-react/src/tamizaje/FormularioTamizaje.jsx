@@ -197,7 +197,7 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
           <span className="tz-paso">1</span>
           <div>
             <h2 className="tz-seccion">{"Identificaci\u00F3n del paciente"}</h2>
-            <p className="tz-seccion-desc">{"Historia, madre y contexto del reci\u00E9n nacido"}</p>
+            <p className="tz-seccion-desc">{"Solo lo necesario para identificar el caso"}</p>
           </div>
         </div>
 
@@ -221,36 +221,6 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
           </Campo>
         </div>
 
-        <Campo
-          etiqueta="Horas de vida"
-          error={errores.horasDeVida}
-          ayuda={"En horas, no en d\u00EDas"}
-        >
-          <input
-            className={`tz-input tz-mono ${errores.horasDeVida ? "tz-error" : ""}`}
-            type="number"
-            value={f.horasDeVida}
-            onChange={(e) => set("horasDeVida")(e.target.value)}
-            placeholder="30"
-          />
-        </Campo>
-
-        <div className="tz-campo">
-          <label className="tz-label">Edad gestacional</label>
-          <div className="tz-chips">
-            {EDADES_GESTACIONALES.map((eg) => (
-              <button
-                key={eg.etiqueta}
-                type="button"
-                className={`tz-chip ${f.edadGestacionalSem === eg.valor ? "tz-chip-on" : ""}`}
-                onClick={() => set("edadGestacionalSem")(eg.valor)}
-                aria-pressed={f.edadGestacionalSem === eg.valor}
-              >
-                {eg.etiqueta}
-              </button>
-            ))}
-          </div>
-        </div>
       </section>
 
       {/* ---------------- 2. Signos vitales ----------------
@@ -301,6 +271,24 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
             {`SpO\u2082 por debajo del umbral cr\u00EDtico de la banda ${banda.id} (<${banda.spo2Critico}%)`}
           </p>
         )}
+        {/* Horas de vida: NO es contexto opcional, es lo que determina si
+            corresponde tamizar. Antes de las 24 h la transicion circulatoria no
+            termino y el resultado no seria valido: el motor devuelve "no
+            elegible". Por eso vive junto a la oximetria. */}
+        <Campo
+          etiqueta="Horas de vida"
+          error={errores.horasDeVida}
+          ayuda={"En horas, no en d\u00EDas"}
+        >
+          <input
+            className={`tz-input tz-mono ${errores.horasDeVida ? "tz-error" : ""}`}
+            type="number"
+            value={f.horasDeVida}
+            onChange={(e) => set("horasDeVida")(e.target.value)}
+            placeholder="30"
+          />
+        </Campo>
+
         {f.spo2Preductal !== "" && f.spo2Postductal === "" && (
           <p className="tz-nota">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -308,38 +296,6 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
           </p>
         )}
 
-        <div className="tz-opcionales">
-          <p className="tz-opcionales-titulo">
-            {"Opcionales \u00b7 generan avisos, no cambian el resultado"}
-          </p>
-          <div className="tz-fila">
-            <Campo etiqueta="Peso (kg)" error={errores.pesoKg}>
-              <input
-                className={`tz-input tz-mono ${errores.pesoKg ? "tz-error" : ""}`}
-                type="number"
-                step="0.1"
-                value={f.pesoKg}
-                onChange={(e) => set("pesoKg")(e.target.value)}
-              />
-            </Campo>
-            <Campo etiqueta="FC (lpm)" error={errores.fcLpm}>
-              <input
-                className={`tz-input tz-mono ${errores.fcLpm ? "tz-error" : ""}`}
-                type="number"
-                value={f.fcLpm}
-                onChange={(e) => set("fcLpm")(e.target.value)}
-              />
-            </Campo>
-            <Campo etiqueta="FR (rpm)" error={errores.frRpm}>
-              <input
-                className={`tz-input tz-mono ${errores.frRpm ? "tz-error" : ""}`}
-                type="number"
-                value={f.frRpm}
-                onChange={(e) => set("frRpm")(e.target.value)}
-              />
-            </Campo>
-          </div>
-        </div>
       </section>
 
       <section className="tz-card tz-card-3">
