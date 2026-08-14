@@ -317,9 +317,18 @@ const CSS_PGE = `
                 text-transform:uppercase; color:var(--suave);
                 font-family:ui-monospace,"SF Mono",Menlo,monospace; }
 .pge-cerrada-texto { margin:5px 0 0; font-size:13.5px; color:var(--tinta); line-height:1.4; }
-.pge-abrir, .pge-cerrar { flex-shrink:0; background:none; border:1px solid var(--linea);
+/* Celeste: es la accion principal de la tarjeta, y usa el mismo acento que
+   los numeros de paso del formulario para que se lea como parte del sistema. */
+.pge-abrir { flex-shrink:0; background:var(--acento); border:1px solid var(--acento);
+             border-radius:8px; padding:9px 18px; font-family:inherit;
+             font-size:13.5px; font-weight:600; color:#fff; cursor:pointer;
+             transition:background .15s ease; }
+.pge-abrir:hover { background:var(--acento-hover); }
+.pge-abrir:focus-visible { outline:2px solid var(--acento); outline-offset:2px; }
+/* Cerrar es secundario: no compite con el contenido ya abierto. */
+.pge-cerrar { flex-shrink:0; background:none; border:1px solid var(--linea);
               border-radius:8px; padding:8px 14px; font-family:inherit;
-              font-size:13px; color:var(--marino-alto); cursor:pointer; }
+              font-size:13px; color:var(--suave); cursor:pointer; }
 .pge-advertencia { margin:0 0 16px; padding:12px 13px; border-radius:9px;
                    background:var(--ambar-suave); border:1px solid var(--ambar-linea);
                    color:var(--ambar); font-size:12.5px; line-height:1.5; }
