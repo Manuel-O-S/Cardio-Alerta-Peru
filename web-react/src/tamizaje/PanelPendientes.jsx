@@ -7,7 +7,7 @@ import { casosVigentes, eliminarCaso, tiempoRestante } from "./casosPendientes.j
  * Se refresca cada 30 s para que el contador de tiempo no quede congelado
  * mientras la pantalla esta abierta.
  */
-export default function PanelPendientes({ onCambio }) {
+export default function PanelPendientes({ onCambio, onRetomar }) {
   const [casos, setCasos] = useState([]);
   const [ahora, setAhora] = useState(Date.now());
 
@@ -92,6 +92,17 @@ export default function PanelPendientes({ onCambio }) {
                   )}
                 </span>
               </div>
+              {/* Solo al vencer: antes no hay nada que rehacer todavia. */}
+              {t.vencido && (
+                <button
+                  type="button"
+                  className="pend-rehacer"
+                  onClick={() => onRetomar?.(c)}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                  {`Rehacer prueba \u00B7 ronda ${c.proximaRonda} de 3`}
+                </button>
+              )}
               <button type="button" className="pend-quitar" onClick={() => quitar(c.id)}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 Quitar de la lista
@@ -210,6 +221,12 @@ const CSS_PEND = `
   font-family: 'JetBrains Mono', ui-monospace, monospace;
 }
 
+.pend-rehacer { display:flex; align-items:center; justify-content:center; gap:8px;
+                width:100%; padding:12px 16px; margin-bottom:10px;
+                border:none; border-radius:10px; background:var(--rojo);
+                color:#fff; font-family:inherit; font-size:14px; font-weight:600;
+                cursor:pointer; }
+.pend-rehacer:hover { background:var(--rojo-hover, var(--rojo)); }
 .pend-reloj { font-size:16px; font-weight:600; letter-spacing:.02em;
              font-variant-numeric: tabular-nums; }
 .pend-reloj-nota { font-size:11px; opacity:.75; }

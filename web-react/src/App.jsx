@@ -14,6 +14,9 @@ import { VERSION_UMBRALES } from "./tamizaje/motorTamizaje.js";
 export default function App() {
   const [vista, setVista] = useState("tamizaje");
   const [pendientes, setPendientes] = useState(0);
+  // Caso que se retoma desde la pestaña de pendientes. Cambia de vista y
+  // precarga el formulario con lo que no varia entre rondas.
+  const [casoARetomar, setCasoARetomar] = useState(null);
   const [enLinea, setEnLinea] = useState(navigator.onLine);
 
   const refrescarPendientes = () => setPendientes(casosVigentes().length);
@@ -114,9 +117,20 @@ export default function App() {
 
       <main className="app-main">
         {vista === "tamizaje" ? (
-          <FormularioTamizaje onCasoGuardado={refrescarPendientes} />
+          <FormularioTamizaje
+            onCasoGuardado={refrescarPendientes}
+            casoARetomar={casoARetomar}
+            onCasoRetomado={() => setCasoARetomar(null)}
+          />
         ) : (
-          <PanelPendientes onCambio={refrescarPendientes} />
+          <PanelPendientes
+            onCambio={refrescarPendientes}
+            onRetomar={(caso) => {
+              setCasoARetomar(caso);
+              setVista("tamizaje");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
         )}
       </main>
 

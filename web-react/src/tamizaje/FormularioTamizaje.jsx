@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PanelDerivacion from "./PanelDerivacion.jsx";
 import PanelUbicacion from "./PanelUbicacion.jsx";
 import CalculadoraPGE1 from "./CalculadoraPGE1.jsx";
 import CalculadoraHidratacion from "./CalculadoraHidratacion.jsx";
-import { guardarCaso } from "./casosPendientes.js";
+import { datosParaRetomar, eliminarCaso, guardarCaso } from "./casosPendientes.js";
 import { leerUbicacion } from "./ubicacion.js";
 import {
   BANDAS,
@@ -60,7 +60,7 @@ const soloLetras = (v) =>
 
 const num = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
 
-export default function FormularioTamizaje({ onCasoGuardado }) {
+export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCasoRetomado }) {
   // La ubicacion es del establecimiento, no del paciente: se lee una vez y se
   // conserva entre tamizajes.
   const [ubicacion, setUbicacion] = useState(leerUbicacion);
@@ -116,6 +116,26 @@ export default function FormularioTamizaje({ onCasoGuardado }) {
   };
 
   const [guardado, setGuardado] = useState(false);
+  const [retomado, setRetomado] = useState(null);
+
+  /**
+   * Retomar un caso vencido. Copia lo que no cambia entre rondas y deja en
+   * blanco lo que hay que volver a medir: SpO2, FC, FR y sintomas. Precargar
+   * las mediciones anteriores invitaria a confirmarlas sin tomarlas, y los
+   * sintomas pueden aparecer en la hora transcurrida.
+   */
+  useEffect(() => {
+    if (!casoARetomar) return;
+    const datos = datosParaRetomar(casoARetomar);
+    setF((prev) => ({ ...prev, ...datos }));
+    setEnviado(false);
+    setGuardado(false);
+    setRetomado({ id: casoARetomar.id, ronda: datos.ronda });
+    // El caso se quita de pendientes: ya se esta atendiendo.
+    eliminarCaso(casoARetomar.id);
+    onCasoGuardado?.();
+    onCasoRetomado?.();
+  }, [casoARetomar]);
 
   // Guarda el caso para que la ronda siguiente no se pierda en el cambio de
   // turno. Es el punto donde el tamizaje real falla mas seguido.
@@ -142,6 +162,17 @@ export default function FormularioTamizaje({ onCasoGuardado }) {
     <div className="tz">
       <style>{CSS}</style>
 
+      {retomado && (
+        <div className="tz-retomado">
+          <p className="tz-retomado-titulo">
+            {`Continuando el caso \u00B7 ronda ${retomado.ronda} de 3`}
+          </p>
+          <p className="tz-retomado-texto">
+            {"Se copiaron los datos que no cambian. Vuelve a medir la SpO\u2082 y a revisar los s\u00EDntomas: pueden haber aparecido en la \u00FAltima hora."}
+          </p>
+        </div>
+      )}
+
       <PanelUbicacion ubicacion={ubicacion} onCambio={setUbicacion} />
 
       {banda && (
@@ -157,14 +188,19 @@ export default function FormularioTamizaje({ onCasoGuardado }) {
       )}
 
       {/* ---------------- 1. Identificacion ---------------- */}
+      {/* ---------------- 1. Identificacion y contexto ----------------
+          `horas de vida` vive aca y no en una seccion aparte porque decide la
+          elegibilidad: por debajo de 24 h no corresponde tamizar. Sin ese dato
+          el motor no puede aplicar esa puerta. */}
       <section className="tz-card tz-card-1">
         <div className="tz-seccion-cab">
           <span className="tz-paso">1</span>
           <div>
             <h2 className="tz-seccion">{"Identificaci\u00F3n del paciente"}</h2>
-            <p className="tz-seccion-desc">{"Solo lo necesario para identificar el caso"}</p>
+            <p className="tz-seccion-desc">{"Historia, madre y contexto del reci\u00E9n nacido"}</p>
           </div>
         </div>
+
         <div className="tz-fila">
           <Campo etiqueta={"N\u00B0 Historia cl\u00EDnica"}>
             <input
@@ -174,10 +210,7 @@ export default function FormularioTamizaje({ onCasoGuardado }) {
               placeholder="RN-2024-0000"
             />
           </Campo>
-          <Campo
-            etiqueta={"Apellido y nombre de la madre"}
-            error={errores.apellidoMaterno}
-          >
+          <Campo etiqueta={"Apellido y nombre de la madre"} error={errores.apellidoMaterno}>
             <input
               className={`tz-input ${errores.apellidoMaterno ? "tz-error" : ""}`}
               value={f.apellidoMaterno}
@@ -187,20 +220,52 @@ export default function FormularioTamizaje({ onCasoGuardado }) {
             />
           </Campo>
         </div>
+
+        <Campo
+          etiqueta="Horas de vida"
+          error={errores.horasDeVida}
+          ayuda={"En horas, no en d\u00EDas"}
+        >
+          <input
+            className={`tz-input tz-mono ${errores.horasDeVida ? "tz-error" : ""}`}
+            type="number"
+            value={f.horasDeVida}
+            onChange={(e) => set("horasDeVida")(e.target.value)}
+            placeholder="30"
+          />
+        </Campo>
+
+        <div className="tz-campo">
+          <label className="tz-label">Edad gestacional</label>
+          <div className="tz-chips">
+            {EDADES_GESTACIONALES.map((eg) => (
+              <button
+                key={eg.etiqueta}
+                type="button"
+                className={`tz-chip ${f.edadGestacionalSem === eg.valor ? "tz-chip-on" : ""}`}
+                onClick={() => set("edadGestacionalSem")(eg.valor)}
+                aria-pressed={f.edadGestacionalSem === eg.valor}
+              >
+                {eg.etiqueta}
+              </button>
+            ))}
+          </div>
+        </div>
       </section>
 
-      {/* ---------------- 2. Oximetria ----------------
-          Va primero entre las mediciones a proposito: es el dato que la
-          enfermera acaba de tomar con el oximetro en la mano, y el unico que
-          determina el resultado del tamizaje. Todo lo demas es contexto. */}
+      {/* ---------------- 2. Signos vitales ----------------
+          La oximetria va arriba y destacada: es el dato que determina el
+          resultado. Peso, FC y FR van debajo y son opcionales: solo generan
+          avisos, nunca cambian el resultado del tamizaje. */}
       <section className="tz-card tz-card-2">
         <div className="tz-seccion-cab">
           <span className="tz-paso">2</span>
           <div>
-            <h2 className="tz-seccion">{"Saturaci\u00F3n de ox\u00EDgeno"}</h2>
-            <p className="tz-seccion-desc">{"La medici\u00F3n que determina el resultado"}</p>
+            <h2 className="tz-seccion">Signos vitales</h2>
+            <p className="tz-seccion-desc">{"La saturaci\u00F3n determina el resultado"}</p>
           </div>
         </div>
+
         <div className="tz-fila">
           <Campo
             etiqueta={`SpO\u2082 preductal (%)`}
@@ -242,84 +307,44 @@ export default function FormularioTamizaje({ onCasoGuardado }) {
             {"Falta la medici\u00F3n en el pie. Sin ella no se puede evaluar la diferencia preductal-postductal y el tamizaje queda incompleto."}
           </p>
         )}
+
+        <div className="tz-opcionales">
+          <p className="tz-opcionales-titulo">
+            {"Opcionales \u00b7 generan avisos, no cambian el resultado"}
+          </p>
+          <div className="tz-fila">
+            <Campo etiqueta="Peso (kg)" error={errores.pesoKg}>
+              <input
+                className={`tz-input tz-mono ${errores.pesoKg ? "tz-error" : ""}`}
+                type="number"
+                step="0.1"
+                value={f.pesoKg}
+                onChange={(e) => set("pesoKg")(e.target.value)}
+              />
+            </Campo>
+            <Campo etiqueta="FC (lpm)" error={errores.fcLpm}>
+              <input
+                className={`tz-input tz-mono ${errores.fcLpm ? "tz-error" : ""}`}
+                type="number"
+                value={f.fcLpm}
+                onChange={(e) => set("fcLpm")(e.target.value)}
+              />
+            </Campo>
+            <Campo etiqueta="FR (rpm)" error={errores.frRpm}>
+              <input
+                className={`tz-input tz-mono ${errores.frRpm ? "tz-error" : ""}`}
+                type="number"
+                value={f.frRpm}
+                onChange={(e) => set("frRpm")(e.target.value)}
+              />
+            </Campo>
+          </div>
+        </div>
       </section>
 
-      {/* ---------------- 3. Datos del recien nacido ----------------
-          Horas de vida, edad gestacional, peso, FC y FR. Ninguno altera el
-          resultado del tamizaje: generan avisos y elegibilidad. Por eso van
-          despues de la oximetria. */}
       <section className="tz-card tz-card-3">
         <div className="tz-seccion-cab">
           <span className="tz-paso">3</span>
-          <div>
-            <h2 className="tz-seccion">{"Datos del reci\u00E9n nacido"}</h2>
-            <p className="tz-seccion-desc">{"Contexto cl\u00EDnico. No alteran el resultado del tamizaje"}</p>
-          </div>
-        </div>
-
-        <Campo
-          etiqueta="Horas de vida"
-          error={errores.horasDeVida}
-          ayuda={"En horas, no en d\u00EDas"}
-        >
-          <input
-            className={`tz-input tz-mono ${errores.horasDeVida ? "tz-error" : ""}`}
-            type="number"
-            value={f.horasDeVida}
-            onChange={(e) => set("horasDeVida")(e.target.value)}
-            placeholder="30"
-          />
-        </Campo>
-
-        <div className="tz-campo">
-          <label className="tz-label">Edad gestacional</label>
-          <div className="tz-chips">
-            {EDADES_GESTACIONALES.map((eg) => (
-              <button
-                key={eg.etiqueta}
-                type="button"
-                className={`tz-chip ${f.edadGestacionalSem === eg.valor ? "tz-chip-on" : ""}`}
-                onClick={() => set("edadGestacionalSem")(eg.valor)}
-                aria-pressed={f.edadGestacionalSem === eg.valor}
-              >
-                {eg.etiqueta}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="tz-fila">
-          <Campo etiqueta="Peso (kg)" error={errores.pesoKg}>
-            <input
-              className={`tz-input tz-mono ${errores.pesoKg ? "tz-error" : ""}`}
-              type="number"
-              step="0.1"
-              value={f.pesoKg}
-              onChange={(e) => set("pesoKg")(e.target.value)}
-            />
-          </Campo>
-          <Campo etiqueta="FC (lpm)" error={errores.fcLpm}>
-            <input
-              className={`tz-input tz-mono ${errores.fcLpm ? "tz-error" : ""}`}
-              type="number"
-              value={f.fcLpm}
-              onChange={(e) => set("fcLpm")(e.target.value)}
-            />
-          </Campo>
-          <Campo etiqueta="FR (rpm)" error={errores.frRpm}>
-            <input
-              className={`tz-input tz-mono ${errores.frRpm ? "tz-error" : ""}`}
-              type="number"
-              value={f.frRpm}
-              onChange={(e) => set("frRpm")(e.target.value)}
-            />
-          </Campo>
-        </div>
-      </section>
-
-      <section className="tz-card tz-card-4">
-        <div className="tz-seccion-cab">
-          <span className="tz-paso">4</span>
           <div>
             <h2 className="tz-seccion">{"S\u00EDntomas presentes"}</h2>
             <p className="tz-seccion-desc">{"Cualquier s\u00EDntoma en rojo excluye del tamizaje"}</p>
@@ -1045,6 +1070,16 @@ const CSS = `
 
 /* --- Derivation panel shared styles --- */
 .tz-banda-prov { color: var(--ambar); }
+.tz-opcionales { margin-top:16px; padding-top:14px; border-top:1px dashed var(--linea); }
+.tz-opcionales-titulo { margin:0 0 10px; font-size:11px; font-weight:600;
+                        letter-spacing:.08em; text-transform:uppercase;
+                        color:var(--tenue);
+                        font-family:ui-monospace,"SF Mono",Menlo,monospace; }
+.tz-retomado { margin-bottom:14px; padding:14px 16px; border-radius:12px;
+               background:var(--verde-suave); border:1px solid var(--verde-linea);
+               border-left:4px solid var(--verde); }
+.tz-retomado-titulo { margin:0 0 5px; font-size:14.5px; font-weight:600; color:var(--verde); }
+.tz-retomado-texto { margin:0; font-size:13px; line-height:1.55; color:var(--tinta); }
 .tz-recordatorio { margin:16px 0 4px; padding:15px 16px; border-radius:12px;
                    background:var(--ambar-suave); border:1px solid var(--ambar-linea);
                    border-left:4px solid var(--ambar); }

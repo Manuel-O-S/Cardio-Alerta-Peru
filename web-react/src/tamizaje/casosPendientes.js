@@ -42,12 +42,17 @@ function escribir(casos) {
 /**
  * Guarda o actualiza un caso pendiente.
  *
- * @param {object} caso
- * @param {string} caso.historiaClinica  identificador del establecimiento
- * @param {number} caso.ronda            ronda que se acaba de completar
- * @param {number} caso.proximaRonda
- * @param {number} caso.minutosEspera
- * @param {number} caso.altitudMsnm
+ * QUE SE GUARDA Y POR QUE
+ * Ademas del temporizador, se guardan los datos ESTABLES del caso para poder
+ * retomarlo sin volver a escribirlos: nombre de la madre, edad gestacional,
+ * peso y altitud. Esos no cambian en una hora.
+ *
+ * NO se guardan las mediciones (SpO2, FC, FR) ni los sintomas. Es deliberado:
+ * la ronda siguiente existe justamente para volver a medir, y precargar los
+ * valores anteriores invitaria a confirmarlos sin tomarlos. Los sintomas,
+ * ademas, pueden aparecer en esa hora — un bebe que desarrolla cianosis entre
+ * rondas tiene que salir del tamizaje, y eso no pasa si la casilla ya viene
+ * marcada como estaba antes.
  */
 export function guardarCaso(caso) {
   const casos = leerCasos();
@@ -62,6 +67,14 @@ export function guardarCaso(caso) {
     altitudMsnm: caso.altitudMsnm,
     registradoEn: ahora,
     reevaluarDesde: ahora + (caso.minutosEspera ?? 60) * 60 * 1000,
+    // Datos estables, para retomar el caso sin reescribirlos.
+    estables: {
+      historiaClinica: caso.historiaClinica ?? "",
+      apellidoMaterno: caso.apellidoMaterno ?? "",
+      edadGestacionalSem: caso.edadGestacionalSem ?? null,
+      pesoKg: caso.pesoKg ?? null,
+      horasDeVida: caso.horasDeVida ?? null,
+    },
   };
 
   const sinEsteCaso = casos.filter((c) => c.id !== id);
@@ -132,5 +145,41 @@ export function tiempoRestante(caso, ahora = Date.now()) {
     vencidoHaceMin: 0,
     texto: `Faltan ${minutos} min`,
     reloj: `${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}`,
+  };
+}
+
+/**
+ * Construye el estado del formulario para retomar un caso.
+ *
+ * Copia lo estable, recalcula las horas de vida con el tiempo transcurrido, y
+ * deja EN BLANCO todo lo que hay que volver a medir.
+ */
+export function datosParaRetomar(caso, ahora = Date.now()) {
+  const e = caso.estables ?? {};
+  const horasTranscurridas = (ahora - caso.registradoEn) / 3600000;
+
+  return {
+    // Se copian: no cambian entre rondas
+    historiaClinica: e.historiaClinica || "",
+    apellidoMaterno: e.apellidoMaterno || "",
+    edadGestacionalSem: e.edadGestacionalSem ?? 38,
+    pesoKg: e.pesoKg != null ? String(e.pesoKg) : "",
+
+    // Se recalcula: ha pasado tiempo desde la ronda anterior
+    horasDeVida:
+      e.horasDeVida != null
+        ? String(Math.round((Number(e.horasDeVida) + horasTranscurridas) * 10) / 10)
+        : "",
+
+    // Se vuelve a medir: en blanco a proposito
+    spo2Preductal: "",
+    spo2Postductal: "",
+    fcLpm: "",
+    frRpm: "",
+    sintomas: [],
+    oxigenoSuplementario: false,
+    diagnosticoPrenatalCC: false,
+
+    ronda: caso.proximaRonda ?? 2,
   };
 }
