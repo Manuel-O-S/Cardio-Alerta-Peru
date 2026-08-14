@@ -147,6 +147,7 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
       </div>
 
       {modo === "catalogo" ? (
+        <div className="ubi-lista-marco">
         <ul className="ubi-lista">
           {ESTABLECIMIENTOS.map((e, i) => (
             <li key={e.id} style={{ animationDelay: `${0.03 * i}s` }}>
@@ -163,6 +164,7 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
             </li>
           ))}
         </ul>
+        </div>
       ) : (
         <>
           <div className="tz-campo">
@@ -382,6 +384,9 @@ const CSS_UBI = `
 
 .ubi-panel-abierto {
   animation: slideDown 0.35s var(--ease-out) both;
+  /* Ninguna altura maxima: el panel crece con su contenido. Quien limita la
+     altura es la lista de establecimientos, que hace scroll por su cuenta. */
+  max-height: none;
 }
 
 .ubi-paso {
@@ -397,10 +402,63 @@ const CSS_UBI = `
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
+/* La lista tiene 13 establecimientos y crecera: sin limite de altura se
+   desborda de la tarjeta y las ultimas opciones quedan tapadas por lo que
+   viene debajo. Con scroll propio, la tarjeta mantiene su tamano y se recorre
+   con la rueda del raton.
+
+   'overscroll-behavior: contain' evita que al llegar al final de la lista el
+   scroll siga arrastrando la pagina entera, que es molesto en movil. */
 .ubi-lista {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 6px 0 0;
+  /* Unos 4 elementos visibles. El resto se ve con la rueda del raton o
+     deslizando: la lista tiene 13 y mostrarla entera empujaba el resto del
+     formulario fuera de la pantalla. */
+  max-height: 296px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) var(--campo);
+}
+
+/* Barra de scroll visible pero discreta: si no se ve, nadie sabe que hay mas
+   opciones abajo. */
+.ubi-lista::-webkit-scrollbar {
+  width: 8px;
+}
+.ubi-lista::-webkit-scrollbar-track {
+  background: var(--campo);
+  border-radius: 4px;
+}
+.ubi-lista::-webkit-scrollbar-thumb {
+  background: var(--linea-fuerte, rgba(148, 163, 184, 0.45));
+  border-radius: 4px;
+}
+.ubi-lista::-webkit-scrollbar-thumb:hover {
+  background: var(--suave);
+}
+/* Degradado al pie: indica que la lista continua. */
+.ubi-lista-marco {
+  position: relative;
+  /* Contiene la lista: sin esto, si algun ancestro anima max-height, el
+     contenido se escapa de la tarjeta. */
+  overflow: hidden;
+  border-radius: 8px;
+}
+.ubi-lista-marco::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 8px;
+  bottom: 0;
+  height: 28px;
+  background: linear-gradient(to top, var(--carta-solida, #fff), transparent);
+  pointer-events: none;
+  border-radius: 0 0 8px 8px;
 }
 
 .ubi-lista li {

@@ -72,7 +72,22 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
     setEnviado(false);
   };
 
+  const marcarAsintomatico = () => {
+    const nuevo = !asintomatico;
+    setAsintomatico(nuevo);
+    if (nuevo) {
+      // Excluyente: si no hay sintomas, no puede haber ninguno marcado.
+      setF((prev) => ({
+        ...prev,
+        sintomas: [],
+        oxigenoSuplementario: false,
+      }));
+    }
+    setEnviado(false);
+  };
+
   const alternarSintoma = (id) => {
+    setAsintomatico(false);
     setF((prev) => ({
       ...prev,
       sintomas: prev.sintomas.includes(id)
@@ -113,10 +128,16 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
     setF(ESTADO_INICIAL);
     setEnviado(false);
     setGuardado(false);
+    setAsintomatico(false);
   };
 
   const [guardado, setGuardado] = useState(false);
   const [retomado, setRetomado] = useState(null);
+  // "Asintomatico" no es un sintoma: es la confirmacion de que se reviso y no
+  // hay ninguno. No entra en la lista que recibe el motor, que ya interpreta
+  // la lista vacia como ausencia. Sirve para distinguir "revise y no hay nada"
+  // de "no llegue a revisar", que en una pantalla desmarcada se ven igual.
+  const [asintomatico, setAsintomatico] = useState(false);
 
   /**
    * Retomar un caso vencido. Copia lo que no cambia entre rondas y deja en
@@ -130,6 +151,7 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
     setF((prev) => ({ ...prev, ...datos }));
     setEnviado(false);
     setGuardado(false);
+    setAsintomatico(false);
     setRetomado({ id: casoARetomar.id, ronda: datos.ronda });
     // El caso se quita de pendientes: ya se esta atendiendo.
     eliminarCaso(casoARetomar.id);
@@ -306,6 +328,24 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
             <p className="tz-seccion-desc">{"Cualquier s\u00EDntoma en rojo excluye del tamizaje"}</p>
           </div>
         </div>
+        <label className={`tz-asintomatico ${asintomatico ? "tz-asintomatico-on" : ""}`}>
+          <input type="checkbox" checked={asintomatico} onChange={marcarAsintomatico} />
+          <span>
+            <span className="tz-asintomatico-titulo">{"Asintom\u00E1tico"}</span>
+            <span className="tz-asintomatico-desc">
+              {"Se revis\u00F3 y no presenta ninguno de los signos de abajo"}
+            </span>
+          </span>
+        </label>
+
+        {/* Aviso si no se marco nada: una pantalla en blanco puede significar
+            "no hay sintomas" o "todavia no revise", y no son lo mismo. */}
+        {!asintomatico && f.sintomas.length === 0 && !f.oxigenoSuplementario && (
+          <p className="tz-nota">
+            {"Marca los s\u00EDntomas presentes o confirma que est\u00E1 asintom\u00E1tico."}
+          </p>
+        )}
+
         <div className="tz-checks">
           {[...SINTOMAS_ALARMA, ...SINTOMAS_CONTEXTO].map((id) => {
             const marcado = f.sintomas.includes(id);
@@ -330,7 +370,10 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
             <input
               type="checkbox"
               checked={f.oxigenoSuplementario}
-              onChange={() => set("oxigenoSuplementario")(!f.oxigenoSuplementario)}
+              onChange={() => {
+                setAsintomatico(false);
+                set("oxigenoSuplementario")(!f.oxigenoSuplementario);
+              }}
             />
             <span>{"Ox\u00EDgeno suplementario"}</span>
           </label>
@@ -1031,6 +1074,18 @@ const CSS = `
                         letter-spacing:.08em; text-transform:uppercase;
                         color:var(--tenue);
                         font-family:ui-monospace,"SF Mono",Menlo,monospace; }
+.tz-asintomatico { display:flex; align-items:flex-start; gap:11px; padding:14px 15px;
+                   border:1px solid var(--linea); border-radius:10px;
+                   background:var(--campo); cursor:pointer; margin-bottom:12px;
+                   transition:background .15s ease, border-color .15s ease; }
+.tz-asintomatico-on { background:var(--verde-suave); border-color:var(--verde-linea); }
+.tz-asintomatico input { accent-color:var(--verde); width:18px; height:18px;
+                         margin:1px 0 0; flex-shrink:0; }
+.tz-asintomatico-titulo { display:block; font-size:14.5px; font-weight:600;
+                          color:var(--tinta); }
+.tz-asintomatico-on .tz-asintomatico-titulo { color:var(--verde); }
+.tz-asintomatico-desc { display:block; font-size:12.5px; color:var(--suave);
+                        margin-top:3px; line-height:1.4; }
 .tz-retomado { margin-bottom:14px; padding:14px 16px; border-radius:12px;
                background:var(--verde-suave); border:1px solid var(--verde-linea);
                border-left:4px solid var(--verde); }

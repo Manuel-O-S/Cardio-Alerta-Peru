@@ -534,9 +534,13 @@ body {
   50%      { box-shadow: 0 0 16px 4px var(--rojo-glow); }
 }
 
+/* Solo opacidad y desplazamiento. Antes tambien animaba max-height, y con
+   fill-mode "both" el valor final (600px) se quedaba fijo en el elemento: el
+   panel de ubicacion quedaba recortado a 600px y su contenido se desbordaba
+   por debajo, pisando lo que venia despues. */
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-8px); max-height: 0; }
-  to   { opacity: 1; transform: translateY(0);  max-height: 600px; }
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes scaleIn {
