@@ -23,19 +23,14 @@ export default function TarjetaHospital({ hospital, seleccionado, onSeleccionar 
           </svg>
         </span>
         <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 3 }}>
-            <h4 className="hosp-nombre">{nombre}</h4>
-            {hospital.nivel && (
-              <span className="hosp-nivel-badge">
-                {hospital.nivel}
-              </span>
-            )}
-            {hospital.iafas && (
-              <span className={`hosp-iafas-badge hosp-iafas-${hospital.iafas.toLowerCase().includes("essalud") ? "essalud" : hospital.iafas.toLowerCase().includes("privado") ? "privado" : "minsa"}`}>
-                {hospital.iafas}
-              </span>
-            )}
-          </div>
+          <h4 className="hosp-nombre">{nombre}</h4>
+          <p className="hosp-meta">
+            {[
+              hospital.nivel,
+              hospital.iafas,
+              Number.isFinite(hospital.distanciaKm) ? `a ${hospital.distanciaKm} km` : null
+            ].filter(Boolean).join(" · ")}
+          </p>
           {seleccionado && (
             <span className="hosp-chip-sel">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
@@ -182,57 +177,25 @@ const CSS_HOSP = `
   letter-spacing: -0.01em;
 }
 
+.hosp-meta {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--suave, #64748b);
+  line-height: 1.35;
+  font-weight: 500;
+}
+
 .hosp-chip-sel {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-top: 4px;
+  margin-top: 5px;
   font-size: 11px;
   font-weight: 600;
   color: #16a34a;
   background: rgba(22, 163, 74, 0.1);
   padding: 2px 8px;
   border-radius: 20px;
-}
-
-.hosp-nivel-badge {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 6px;
-  letter-spacing: 0.02em;
-  font-family: 'JetBrains Mono', monospace;
-  background: rgba(14, 165, 233, 0.1);
-  color: #0284c7;
-  border: 1px solid rgba(14, 165, 233, 0.25);
-}
-
-.hosp-iafas-badge {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 6px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-.hosp-iafas-minsa {
-  background: rgba(37, 99, 235, 0.08);
-  color: #2563eb;
-  border: 1px solid rgba(37, 99, 235, 0.25);
-}
-
-.hosp-iafas-essalud {
-  background: rgba(99, 102, 241, 0.08);
-  color: #4f46e5;
-  border: 1px solid rgba(99, 102, 241, 0.25);
-}
-
-.hosp-iafas-privado {
-  background: rgba(168, 85, 247, 0.08);
-  color: #9333ea;
-  border: 1px solid rgba(168, 85, 247, 0.25);
 }
 
 /* --- Profesionales --- */
