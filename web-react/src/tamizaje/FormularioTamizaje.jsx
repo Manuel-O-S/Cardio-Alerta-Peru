@@ -56,12 +56,10 @@ const ESTADO_INICIAL = {
 };
 
 /**
- * Deja pasar solo letras, espacios, tildes, ñ, apóstrofos y guiones. Se filtra
- * mientras se escribe y no al validar: así el campo nunca llega a tener un
- * carácter inválido y no hace falta un mensaje de error.
+ * Deja pasar solo letras, espacios, tildes, ñ y ü. No permite puntos, guiones ni números.
  */
 const soloLetras = (v) =>
-  v.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñÜü\s'\-.]/g, "").replace(/\s{2,}/g, " ");
+  v.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]/g, "").replace(/\s{2,}/g, " ");
 
 const num = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
 
@@ -241,11 +239,11 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
         </div>
 
         <div className="tz-fila">
-          <Campo etiqueta={"N\u00B0 Historia cl\u00EDnica"}>
+          <Campo etiqueta={"N° Historia clínica"}>
             <input
               className="tz-input tz-mono"
               value={f.historiaClinica}
-              onChange={(e) => set("historiaClinica")(e.target.value)}
+              onChange={(e) => set("historiaClinica")(e.target.value.replace(/[^a-zA-Z0-9\-_/]/g, "").toUpperCase())}
               placeholder="RN-2024-0000"
             />
           </Campo>
@@ -254,7 +252,7 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
               className={`tz-input ${errores.apellidoMaterno ? "tz-error" : ""}`}
               value={f.apellidoMaterno}
               onChange={(e) => set("apellidoMaterno")(soloLetras(e.target.value))}
-              placeholder={"Garc\u00EDa Mendoza, Ana"}
+              placeholder={"García Mendoza, Ana"}
               autoComplete="off"
             />
           </Campo>
@@ -271,7 +269,7 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
           <span className="tz-paso">2</span>
           <div>
             <h2 className="tz-seccion">Signos vitales</h2>
-            <p className="tz-seccion-desc">{"La saturaci\u00F3n determina el resultado"}</p>
+            <p className="tz-seccion-desc">{"La saturación determina el resultado"}</p>
           </div>
           {/* La duda real no es que significa "preductal", sino donde va el
               sensor. Una foto lo resuelve sin ocupar sitio hasta que se pide. */}
@@ -280,26 +278,28 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
 
         <div className="tz-fila">
           <Campo
-            etiqueta={`SpO\u2082 preductal (%)`}
+            etiqueta={`SpO₂ preductal (%)`}
             error={errores.spo2Preductal}
           >
             <input
               className={`tz-input tz-mono ${errores.spo2Preductal || avisoCritico ? "tz-error" : ""}`}
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={f.spo2Preductal}
-              onChange={(e) => set("spo2Preductal")(e.target.value)}
+              onChange={(e) => set("spo2Preductal")(e.target.value.replace(/\D/g, "").slice(0, 3))}
               placeholder="98"
             />
           </Campo>
           <Campo
-            etiqueta={`SpO\u2082 postductal (%)`}
+            etiqueta={`SpO₂ postductal (%)`}
             error={errores.spo2Postductal}
           >
             <input
               className={`tz-input tz-mono ${errores.spo2Postductal ? "tz-error" : ""}`}
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={f.spo2Postductal}
-              onChange={(e) => set("spo2Postductal")(e.target.value)}
+              onChange={(e) => set("spo2Postductal")(e.target.value.replace(/\D/g, "").slice(0, 3))}
               placeholder="97"
             />
           </Campo>
@@ -308,7 +308,7 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
         {avisoCritico && (
           <p className="tz-alerta tz-alerta-glow">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            {`SpO\u2082 por debajo del umbral cr\u00EDtico de la banda ${banda.id} (<${banda.spo2Critico}%)`}
+            {`SpO₂ por debajo del umbral crítico de la banda ${banda.id} (<${banda.spo2Critico}%)`}
           </p>
         )}
         {/* Horas de vida: NO es contexto opcional, es lo que determina si
@@ -318,13 +318,14 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
         <Campo
           etiqueta="Horas de vida"
           error={errores.horasDeVida}
-          ayuda={"En horas, no en d\u00EDas"}
+          ayuda={"En horas, no en días"}
         >
           <input
             className={`tz-input tz-mono ${errores.horasDeVida ? "tz-error" : ""}`}
-            type="number"
+            type="text"
+            inputMode="numeric"
             value={f.horasDeVida}
-            onChange={(e) => set("horasDeVida")(e.target.value)}
+            onChange={(e) => set("horasDeVida")(e.target.value.replace(/\D/g, "").slice(0, 4))}
             placeholder="30"
           />
         </Campo>

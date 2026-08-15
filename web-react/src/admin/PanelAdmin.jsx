@@ -76,8 +76,15 @@ export default function PanelAdmin({ usuario, onCerrarSesion }) {
     setMensaje({ tipo: "", texto: "" });
     setCargandoForm(true);
 
-    if (dni.length !== 8) {
-      setMensaje({ tipo: "error", texto: "El DNI debe tener 8 dígitos." });
+    if (dni.length !== 8 || !/^\d{8}$/.test(dni)) {
+      setMensaje({ tipo: "error", texto: "El DNI debe tener exactamente 8 dígitos numéricos." });
+      setCargandoForm(false);
+      return;
+    }
+
+    const nombreLimpio = nombre.trim();
+    if (nombreLimpio.length < 3 || !/^[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]{3,60}$/.test(nombreLimpio)) {
+      setMensaje({ tipo: "error", texto: "El nombre solo debe contener letras y espacios (mínimo 3 caracteres, sin puntos ni guiones)." });
       setCargandoForm(false);
       return;
     }
@@ -89,7 +96,7 @@ export default function PanelAdmin({ usuario, onCerrarSesion }) {
       password: contrasena,
       options: {
         data: {
-          nombre: nombre,
+          nombre: nombreLimpio,
           rol: "doctor"
         }
       }
@@ -105,7 +112,7 @@ export default function PanelAdmin({ usuario, onCerrarSesion }) {
       const { error: perfilError } = await supabase.from("perfiles").insert({
         id: data.user.id,
         dni: dni,
-        nombre: nombre,
+        nombre: nombreLimpio,
         rol: "doctor"
       });
 
@@ -316,8 +323,8 @@ export default function PanelAdmin({ usuario, onCerrarSesion }) {
                 <input
                   type="text"
                   value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  placeholder="Ej: Dr. Juan Pérez"
+                  onChange={(e) => setNombre(e.target.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]/g, ""))}
+                  placeholder="Ej: Juan Pérez"
                   required
                 />
               </div>
