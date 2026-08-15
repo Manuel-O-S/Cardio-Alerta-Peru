@@ -380,21 +380,52 @@ export const HOSPITALES = {
   ],
 };
 
+export function obtenerIafas(h) {
+  if (h.iafas) return h.iafas;
+  const nom = (h.nombre || "").toLowerCase();
+  if (
+    nom.includes("essalud") ||
+    nom.includes("rebagliati") ||
+    nom.includes("almenara") ||
+    nom.includes("sabogal") ||
+    nom.includes("lazarte") ||
+    nom.includes("seguín") ||
+    nom.includes("guevara") ||
+    nom.includes("priale") ||
+    nom.includes("higos urco") ||
+    nom.includes("héroes del cenepa") ||
+    nom.includes("samaritano")
+  ) {
+    return "EsSalud";
+  }
+  if (nom.includes("clínica") || nom.includes("clinica")) {
+    return "Privado";
+  }
+  return "MINSA / SIS";
+}
+
 /**
  * Obtiene la lista de hospitales de una ciudad por su id o coordenadas.
  * Si es una ubicación manual o por GPS, deduce la ciudad de referencia más cercana.
+ * Cada hospital incluye su aseguradora (iafas).
  */
 export function hospitalesDeCiudad(ciudadId, lat, lon) {
+  let lista = [];
   if (ciudadId && ciudadId !== "manual" && HOSPITALES[ciudadId]) {
-    return HOSPITALES[ciudadId];
-  }
-  const la = Number(lat);
-  const lo = Number(lon);
-  if (Number.isFinite(la) && Number.isFinite(lo)) {
-    const deducido = deducirDesdeCoordenadas(la, lo);
-    if (deducido?.id && HOSPITALES[deducido.id]) {
-      return HOSPITALES[deducido.id];
+    lista = HOSPITALES[ciudadId];
+  } else {
+    const la = Number(lat);
+    const lo = Number(lon);
+    if (Number.isFinite(la) && Number.isFinite(lo)) {
+      const deducido = deducirDesdeCoordenadas(la, lo);
+      if (deducido?.id && HOSPITALES[deducido.id]) {
+        lista = HOSPITALES[deducido.id];
+      }
     }
   }
-  return [];
+
+  return lista.map((h) => ({
+    ...h,
+    iafas: h.iafas || obtenerIafas(h),
+  }));
 }

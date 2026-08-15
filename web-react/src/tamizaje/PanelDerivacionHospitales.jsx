@@ -1,11 +1,17 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { hospitalesDeCiudad } from "./hospitales.js";
+import {
+  guardarBackupHospitales,
+  leerBackupHospitales,
+  guardarHospitalSeleccionadoOffline,
+  leerHospitalSeleccionadoOffline,
+} from "./backupHospitales.js";
 import TarjetaHospital from "./TarjetaHospital.jsx";
 
 /**
- * Panel de hospitales para derivación.
- * Muestra las tarjetas disponibles y, al seleccionar uno, se muestra únicamente
- * el hospital elegido con las acciones de traslado y confirmación.
+ * Panel de hospitales para derivación con Respaldo Offline Automático (cada 30 min).
+ * Agrupa los hospitales por tipo de aseguradora (MINSA / SIS, EsSalud, Privado)
+ * y almacena una copia de seguridad en memoria local para emergencias sin internet.
  */
 export default function PanelDerivacionHospitales({ 
   ubicacionId, 
@@ -17,28 +23,127 @@ export default function PanelDerivacionHospitales({
 }) {
   const [seleccionado, setSeleccionado] = useState(hospitalProp || null);
   const [derivacionConfirmada, setDerivacionConfirmada] = useState(false);
+  const [filtroSeguro, setFiltroSeguro] = useState("todos");
+  const [estaOffline, setEstaOffline] = useState(!navigator.onLine);
+  const [ultimoBackup, setUltimoBackup] = useState(null);
 
   const ciudadId = ubicacion?.id || ubicacionId;
   const latitude = ubicacion?.lat ?? lat;
   const longitude = ubicacion?.lon ?? lon;
 
-  const hospitales = hospitalesDeCiudad(ciudadId, latitude, longitude);
+  // Escuchar estado de conexión de red
+  useEffect(() => {
+    const handleOnline = () => setEstaOffline(false);
+    const handleOffline = () => setEstaOffline(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  // Obtener hospitales con fallback de backup local
+  const hospitales = useMemo(() => {
+    const lista = hospitalesDeCiudad(ciudadId, latitude, longitude);
+    if (lista && lista.length > 0) {
+      return lista;
+    }
+    // Si no hay red o está vacío, consultar backup local
+    const backup = leerBackupHospitales(ciudadId);
+    if (backup && backup.hospitales?.length > 0) {
+      return backup.hospitales;
+    }
+    return [];
+  }, [ciudadId, latitude, longitude]);
+
+  // Recuperar hospital previamente seleccionado si se refresca sin conexión
+  useEffect(() => {
+    if (!seleccionado) {
+      const guardado = leerHospitalSeleccionadoOffline();
+      if (guardado?.hospital) {
+        setSeleccionado(guardado.hospital);
+      }
+    }
+  }, []);
+
+  // Guardado de Backup automático inicial y periódico cada 30 minutos
+  useEffect(() => {
+    if (hospitales && hospitales.length > 0) {
+      guardarBackupHospitales(ciudadId, hospitales);
+      setUltimoBackup(new Date());
+    }
+
+    // Intervalo de backup cada 30 minutos (1800000 ms)
+    const intervaloBackup = setInterval(() => {
+      if (hospitales && hospitales.length > 0) {
+        guardarBackupHospitales(ciudadId, hospitales);
+        setUltimoBackup(new Date());
+        console.log("CardioAlerta: Copia de seguridad de hospitales actualizada (cada 30 min).");
+      }
+    }, 30 * 60 * 1000);
+
+    return () => clearInterval(intervaloBackup);
+  }, [ciudadId, hospitales]);
+
+  // Conteo por tipo de aseguradora
+  const minsaHosp = useMemo(
+    () => hospitales.filter((h) => (h.iafas || "").includes("MINSA") || (h.iafas || "").includes("SIS")),
+    [hospitales]
+  );
+  const essaludHosp = useMemo(
+    () => hospitales.filter((h) => (h.iafas || "").includes("EsSalud")),
+    [hospitales]
+  );
+  const privadoHosp = useMemo(
+    () => hospitales.filter((h) => (h.iafas || "").includes("Privado")),
+    [hospitales]
+  );
 
   const handleSeleccionar = (h) => {
     setSeleccionado(h);
     setDerivacionConfirmada(false);
+    guardarHospitalSeleccionadoOffline(h);
     onHospitalSeleccionado?.(h);
   };
 
   const handleCambiar = () => {
     setSeleccionado(null);
     setDerivacionConfirmada(false);
+    guardarHospitalSeleccionadoOffline(null);
     onHospitalSeleccionado?.(null);
   };
 
   const handleConfirmarDerivacion = () => {
     setDerivacionConfirmada(true);
+    if (seleccionado) {
+      guardarHospitalSeleccionadoOffline(seleccionado);
+    }
   };
+
+  const gruposParaMostrar = useMemo(() => {
+    if (filtroSeguro === "minsa") {
+      return [{ titulo: "Hospitales MINSA / SIS", icono: "🏥", lista: minsaHosp, clase: "minsa" }];
+    }
+    if (filtroSeguro === "essalud") {
+      return [{ titulo: "Hospitales EsSalud", icono: "🏢", lista: essaludHosp, clase: "essalud" }];
+    }
+    if (filtroSeguro === "privado") {
+      return [{ titulo: "Clínicas y Centros Privados", icono: "🏨", lista: privadoHosp, clase: "privado" }];
+    }
+    // Todos agrupados
+    const res = [];
+    if (minsaHosp.length > 0) {
+      res.push({ titulo: "Hospitales MINSA / SIS", icono: "🏥", lista: minsaHosp, clase: "minsa" });
+    }
+    if (essaludHosp.length > 0) {
+      res.push({ titulo: "Hospitales EsSalud", icono: "🏢", lista: essaludHosp, clase: "essalud" });
+    }
+    if (privadoHosp.length > 0) {
+      res.push({ titulo: "Clínicas Privadas", icono: "🏨", lista: privadoHosp, clase: "privado" });
+    }
+    return res;
+  }, [filtroSeguro, minsaHosp, essaludHosp, privadoHosp]);
 
   return (
     <div className="deriv-panel">
@@ -48,16 +153,77 @@ export default function PanelDerivacionHospitales({
         <h3 className="deriv-titulo">
           {seleccionado ? "Hospital Seleccionado para Derivación" : "Hospitales disponibles para derivación"}
         </h3>
-        {seleccionado && (
-          <button type="button" className="deriv-btn-cambiar" onClick={handleCambiar}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-            Cambiar hospital
-          </button>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {estaOffline && (
+            <span className="deriv-badge-offline" title="Copia de seguridad local activa">
+              <span className="deriv-punto-offline"></span>
+              Modo Offline (Backup)
+            </span>
+          )}
+          {seleccionado && (
+            <button type="button" className="deriv-btn-cambiar" onClick={handleCambiar}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Cambiar hospital
+            </button>
+          )}
+        </div>
       </div>
+
+      {estaOffline && (
+        <div className="deriv-aviso-backup">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span>
+            <strong>Sin conexión a internet:</strong> Mostrando hospitales y teléfonos desde la copia de seguridad local (auto-guardada cada 30 min).
+          </span>
+        </div>
+      )}
+
+      {!seleccionado && hospitales.length > 0 && (
+        <div className="deriv-filtros-iafas">
+          <span className="deriv-filtro-etq">Aseguradora:</span>
+          <div className="deriv-chips-wrap">
+            <button
+              type="button"
+              className={`deriv-chip ${filtroSeguro === "todos" ? "deriv-chip-activo" : ""}`}
+              onClick={() => setFiltroSeguro("todos")}
+            >
+              Todos ({hospitales.length})
+            </button>
+            {minsaHosp.length > 0 && (
+              <button
+                type="button"
+                className={`deriv-chip ${filtroSeguro === "minsa" ? "deriv-chip-activo-minsa" : ""}`}
+                onClick={() => setFiltroSeguro("minsa")}
+              >
+                MINSA / SIS ({minsaHosp.length})
+              </button>
+            )}
+            {essaludHosp.length > 0 && (
+              <button
+                type="button"
+                className={`deriv-chip ${filtroSeguro === "essalud" ? "deriv-chip-activo-essalud" : ""}`}
+                onClick={() => setFiltroSeguro("essalud")}
+              >
+                EsSalud ({essaludHosp.length})
+              </button>
+            )}
+            {privadoHosp.length > 0 && (
+              <button
+                type="button"
+                className={`deriv-chip ${filtroSeguro === "privado" ? "deriv-chip-activo-privado" : ""}`}
+                onClick={() => setFiltroSeguro("privado")}
+              >
+                Privado ({privadoHosp.length})
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {hospitales.length === 0 ? (
         <p className="deriv-sin-hospitales">
@@ -122,14 +288,25 @@ export default function PanelDerivacionHospitales({
           </div>
         </div>
       ) : (
-        <div className="deriv-lista">
-          {hospitales.map((h) => (
-            <TarjetaHospital
-              key={h.id}
-              hospital={h}
-              seleccionado={false}
-              onSeleccionar={() => handleSeleccionar(h)}
-            />
+        <div className="deriv-grupos-contenedor">
+          {gruposParaMostrar.map((grupo) => (
+            <div key={grupo.titulo} className="deriv-grupo-seccion">
+              <div className={`deriv-grupo-cab deriv-grupo-cab-${grupo.clase}`}>
+                <span className="deriv-grupo-icono">{grupo.icono}</span>
+                <span className="deriv-grupo-titulo">{grupo.titulo}</span>
+                <span className="deriv-grupo-conteo">({grupo.lista.length})</span>
+              </div>
+              <div className="deriv-lista">
+                {grupo.lista.map((h) => (
+                  <TarjetaHospital
+                    key={h.id}
+                    hospital={h}
+                    seleccionado={false}
+                    onSeleccionar={() => handleSeleccionar(h)}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -194,6 +371,49 @@ const CSS_DERIVACION = `
   background: var(--acento-suave);
   border-color: var(--acento-linea);
   transform: translateY(-1px);
+}
+
+.deriv-badge-offline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.deriv-punto-offline {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #d97706;
+  animation: pulsoOffline 2s infinite;
+}
+
+@keyframes pulsoOffline {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.2); }
+}
+
+.deriv-aviso-backup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-left: 4px solid #f59e0b;
+  border-radius: 8px;
+  color: #92400e;
+  font-size: 12.5px;
+  line-height: 1.4;
+  animation: fadeInUp 0.3s ease-out;
 }
 
 .deriv-lista {
@@ -297,6 +517,123 @@ const CSS_DERIVACION = `
   justify-content: center;
   gap: 8px;
   animation: fadeInUp 0.3s ease;
+}
+
+.deriv-filtros-iafas {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.deriv-filtro-etq {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--suave);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.deriv-chips-wrap {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.deriv-chip {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--linea);
+  background: var(--carta-solida, #fff);
+  color: var(--suave);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.deriv-chip:hover {
+  border-color: var(--acento-linea);
+  color: var(--acento);
+}
+
+.deriv-chip-activo {
+  background: var(--tinta, #0f172a) !important;
+  color: #fff !important;
+  border-color: var(--tinta, #0f172a) !important;
+}
+
+.deriv-chip-activo-minsa {
+  background: #2563eb !important;
+  color: #fff !important;
+  border-color: #2563eb !important;
+}
+
+.deriv-chip-activo-essalud {
+  background: #4f46e5 !important;
+  color: #fff !important;
+  border-color: #4f46e5 !important;
+}
+
+.deriv-chip-activo-privado {
+  background: #9333ea !important;
+  color: #fff !important;
+  border-color: #9333ea !important;
+}
+
+.deriv-grupos-contenedor {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.deriv-grupo-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.deriv-grupo-cab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.deriv-grupo-cab-minsa {
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+  border-left: 3px solid #2563eb;
+}
+
+.deriv-grupo-cab-essalud {
+  background: rgba(99, 102, 241, 0.08);
+  color: #4338ca;
+  border-left: 3px solid #4f46e5;
+}
+
+.deriv-grupo-cab-privado {
+  background: rgba(168, 85, 247, 0.08);
+  color: #7e22ce;
+  border-left: 3px solid #9333ea;
+}
+
+.deriv-grupo-icono {
+  font-size: 14px;
+}
+
+.deriv-grupo-titulo {
+  flex: 1;
+}
+
+.deriv-grupo-conteo {
+  font-size: 11.5px;
+  opacity: 0.8;
 }
 
 .deriv-sin-hospitales {

@@ -34,6 +34,7 @@ export default function HistorialClinico() {
       }
 
       const filas = pendientes.map(p => ({
+        id: p.idLocal || crypto.randomUUID(),
         doctor_id: sesion.id,
         paciente_nombre: p.paciente,
         resultado_color: p.resultado,

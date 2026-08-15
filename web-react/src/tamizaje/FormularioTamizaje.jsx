@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import PanelDerivacion from "./PanelDerivacion.jsx";
 import PanelUbicacion from "./PanelUbicacion.jsx";
 import AyudaSensores from "./AyudaSensores.jsx";
 import AyudaSintoma from "./AyudaSintoma.jsx";
@@ -470,7 +469,7 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
           </>
         )}
 
-      {/* 1. Hospitales de derivación locales para Amarillos y Rojos (ANTES QUE DERIVACIÓN GENERAL) */}
+      {/* Hospitales de derivación locales para Amarillos y Rojos */}
       {salida?.ok &&
         (salida.resultado === Resultado.POSITIVO ||
          salida.resultado === Resultado.REPETIR ||
@@ -481,13 +480,6 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
               console.log("Hospital seleccionado:", h?.nombre);
             }} 
           />
-        )}
-
-      {/* 2. Búsqueda y cálculo de centros de derivación por radio/GPS */}
-      {salida?.ok &&
-        (salida.resultado === Resultado.POSITIVO ||
-          salida.resultado === Resultado.NO_ELEGIBLE) && (
-          <PanelDerivacion latInicial={ubicacion.lat} lonInicial={ubicacion.lon} />
         )}
 
       {salida && !salida.ok && (
