@@ -59,7 +59,7 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
 
   const ubicarme = async () => {
     setUbicando(true);
-    setMensaje("Pidiendo permiso de ubicaci\u00F3n\u2026");
+    setMensaje("Pidiendo permiso de ubicación…");
     setSugerencia(null);
 
     const r = await obtenerUbicacion();
@@ -83,8 +83,8 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
 
     // 1) Intento la altitud EXACTA por servicio (SRTM). Requiere internet.
     setMensaje(
-      `Coordenadas tomadas del GPS${precision ? ` \u00B7 ${precision}` : ""}. ` +
-        "Buscando la altitud exacta\u2026"
+      `Coordenadas tomadas del GPS${precision ? ` · ${precision}` : ""}. ` +
+        "Buscando la altitud exacta…"
     );
     const exacta = await obtenerAltitudExacta(r.lat, r.lon);
     setUbicando(false);
@@ -93,29 +93,29 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
       setBorrador((b) => ({ ...b, altitudMsnm: String(exacta.altitudMsnm) }));
       setSugerencia(null);
       setMensaje(
-        `Coordenadas tomadas del GPS${precision ? ` \u00B7 ${precision}` : ""}. ` +
-          `Altitud exacta obtenida por servicio de elevaci\u00F3n: ${exacta.altitudMsnm} msnm. ` +
-          "Verific\u00E1la antes de guardar: define el umbral del tamizaje."
+        `Coordenadas tomadas del GPS${precision ? ` · ${precision}` : ""}. ` +
+          `Altitud exacta obtenida por servicio de elevación: ${exacta.altitudMsnm} msnm. ` +
+          "Verifícala antes de guardar: define el umbral del tamizaje."
       );
       return;
     }
 
-    // 2) Sin internet o el servicio fall\u00F3: caigo al respaldo offline (punto
-    // de referencia m\u00E1s cercano de los 13 conocidos), como antes.
+    // 2) Sin internet o el servicio falló: caigo al respaldo offline (punto
+    // de referencia más cercano de los 13 conocidos), como antes.
     const sug = deducirDesdeCoordenadas(r.lat, r.lon);
     setSugerencia(sug);
 
     const razon =
       exacta.motivo === "sin_conexion" || exacta.motivo === "tiempo_agotado"
-        ? "no hay conexi\u00F3n para pedir la altitud exacta"
-        : "el servicio de altitud exacta no respondi\u00F3";
+        ? "no hay conexión para pedir la altitud exacta"
+        : "el servicio de altitud exacta no respondió";
 
     setMensaje(
-      `Coordenadas tomadas del GPS${precision ? ` \u00B7 ${precision}` : ""}. ` +
-        `${razon.charAt(0).toUpperCase()}${razon.slice(1)}, as\u00ED que ` +
+      `Coordenadas tomadas del GPS${precision ? ` · ${precision}` : ""}. ` +
+        `${razon.charAt(0).toUpperCase()}${razon.slice(1)}, así que ` +
         (sug
-          ? "te dejo una altitud aproximada abajo: revis\u00E1la antes de guardar."
-          : "escrib\u00ED la altitud a mano.")
+          ? "te dejo una altitud aproximada abajo: revísala antes de guardar."
+          : "escribí la altitud a mano.")
     );
   };
 
@@ -132,7 +132,7 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
             <p className="ubi-nombre">{ubicacion.nombre}</p>
             <p className="ubi-datos tz-mono">
               <span className="ubi-dato-chip">{ubicacion.altitudMsnm} msnm</span>
-              <span className="ubi-dato-sep">{"\u00B7"}</span>
+              <span className="ubi-dato-sep">{"·"}</span>
               {ubicacion.lat}, {ubicacion.lon}
             </p>
           </div>
@@ -144,7 +144,7 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
         {ubicacion.manual && (
           <p className="ubi-aviso">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            {"Ubicaci\u00F3n configurada a mano. La altitud define el umbral de saturaci\u00F3n que se aplica: verif\u00EDcala antes de tamizar."}
+            {"Ubicación configurada a mano. La altitud define el umbral de saturación que se aplica: verifícala antes de tamizar."}
           </p>
         )}
       </section>
@@ -159,8 +159,8 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         </span>
         <div>
-          <h2 className="tz-seccion">{"Ubicaci\u00F3n del establecimiento"}</h2>
-          <p className="tz-seccion-desc">{"La altitud define el umbral; las coordenadas, la derivaci\u00F3n"}</p>
+          <h2 className="tz-seccion">Ubicación del establecimiento</h2>
+          <p className="tz-seccion-desc">La altitud define el umbral; las coordenadas, la derivación</p>
         </div>
       </div>
 
@@ -212,7 +212,7 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
               className="tz-input"
               value={borrador.nombre}
               onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })}
-              placeholder="Centro de Salud \u2026"
+              placeholder="Centro de Salud …"
             />
           </div>
 
@@ -244,7 +244,7 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
           <div className="tz-campo">
             <label className="tz-label">
               Altitud (msnm)
-              <span className="tz-ayuda"> {"\u00B7 define el umbral del tamizaje"}</span>
+              <span className="tz-ayuda"> {"· define el umbral del tamizaje"}</span>
             </label>
             <input
               className={`tz-input tz-mono ${errores.altitudMsnm ? "tz-error" : ""}`}
@@ -291,11 +291,11 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
           <div className="tz-acciones">
             <button type="button" className="tz-boton tz-boton-pri" onClick={guardarManual}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              Guardar ubicaci\u00F3n
+              Guardar ubicación
             </button>
             <button type="button" className="tz-boton tz-boton-sec" onClick={ubicarme} disabled={ubicando}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-              {ubicando ? "Ubicando\u2026" : "Usar GPS para las coordenadas"}
+              {ubicando ? "Ubicando…" : "Usar GPS para las coordenadas"}
             </button>
           </div>
         </>

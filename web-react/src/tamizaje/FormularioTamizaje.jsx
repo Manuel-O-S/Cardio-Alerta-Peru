@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import PanelDerivacion from "./PanelDerivacion.jsx";
 import PanelUbicacion from "./PanelUbicacion.jsx";
 import AyudaSensores from "./AyudaSensores.jsx";
+import AyudaSintoma from "./AyudaSintoma.jsx";
 import CalculadoraPGE1 from "./CalculadoraPGE1.jsx";
 import CalculadoraHidratacion from "./CalculadoraHidratacion.jsx";
+import { INFO_SINTOMAS } from "./infoSintomas.js";
 import { datosParaRetomar, eliminarCaso, guardarCaso } from "./casosPendientes.js";
 import { leerUbicacion } from "./ubicacion.js";
 import {
@@ -352,6 +354,7 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
           {[...SINTOMAS_ALARMA, ...SINTOMAS_CONTEXTO].map((id) => {
             const marcado = f.sintomas.includes(id);
             const esAlarma = SINTOMAS_ALARMA.includes(id);
+            const info = INFO_SINTOMAS[id];
             return (
               <label
                 key={id}
@@ -363,6 +366,14 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
                   onChange={() => alternarSintoma(id)}
                 />
                 <span>{ETIQUETAS_SINTOMAS[id]}</span>
+                {info && (
+                  <AyudaSintoma
+                    titulo={info.titulo}
+                    imagen={info.imagen}
+                    alt={info.alt}
+                    descripcion={info.descripcion}
+                  />
+                )}
               </label>
             );
           })}
@@ -378,6 +389,12 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
               }}
             />
             <span>{"Ox\u00EDgeno suplementario"}</span>
+            <AyudaSintoma
+              titulo={INFO_SINTOMAS.oxigeno_suplementario.titulo}
+              imagen={INFO_SINTOMAS.oxigeno_suplementario.imagen}
+              alt={INFO_SINTOMAS.oxigeno_suplementario.alt}
+              descripcion={INFO_SINTOMAS.oxigeno_suplementario.descripcion}
+            />
           </label>
           <label className={`tz-check ${f.diagnosticoPrenatalCC ? "tz-check-alarma" : ""}`}>
             <input
@@ -386,6 +403,12 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
               onChange={() => set("diagnosticoPrenatalCC")(!f.diagnosticoPrenatalCC)}
             />
             <span>{"Diagn\u00F3stico prenatal de cardiopat\u00EDa"}</span>
+            <AyudaSintoma
+              titulo={INFO_SINTOMAS.diagnostico_prenatal.titulo}
+              imagen={INFO_SINTOMAS.diagnostico_prenatal.imagen}
+              alt={INFO_SINTOMAS.diagnostico_prenatal.alt}
+              descripcion={INFO_SINTOMAS.diagnostico_prenatal.descripcion}
+            />
           </label>
         </div>
       </section>

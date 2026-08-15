@@ -3,15 +3,22 @@ import FormularioTamizaje from "./tamizaje/FormularioTamizaje.jsx";
 import PanelPendientes from "./tamizaje/PanelPendientes.jsx";
 import { casosVigentes } from "./tamizaje/casosPendientes.js";
 import { VERSION_UMBRALES } from "./tamizaje/motorTamizaje.js";
+import { obtenerSesion, cerrarSesion } from "./auth/authLocal.js";
+import PantallaLogin from "./auth/PantallaLogin.jsx";
+import PantallaRegistro from "./auth/PantallaRegistro.jsx";
+import PantallaRecuperarContrasena from "./auth/PantallaRecuperarContrasena.jsx";
 
 /**
  * Cascaron de la aplicacion.
  *
- * Dos vistas y nada mas: el tamizaje, y los casos que quedaron pendientes de
- * repetir. La segunda existe porque un "repetir en 60 minutos" que nadie
- * repite es un caso perdido, y el cambio de turno es donde se pierden.
+ * Incluye autenticacion local hospitalaria:
+ * - Si no hay sesion: muestra Login / Registro / Recuperar contrasena
+ * - Si hay sesion: muestra la aplicacion (Tamizaje / Pendientes) y boton de cerrar sesion
  */
 export default function App() {
+  const [usuario, setUsuario] = useState(() => obtenerSesion());
+  const [vistaAuth, setVistaAuth] = useState("login"); // "login" | "registro" | "recuperar"
+
   const [vista, setVista] = useState("tamizaje");
   const [pendientes, setPendientes] = useState(0);
   // Caso que se retoma desde la pestaña de pendientes. Cambia de vista y
@@ -22,7 +29,9 @@ export default function App() {
   const refrescarPendientes = () => setPendientes(casosVigentes().length);
 
   useEffect(() => {
-    refrescarPendientes();
+    if (usuario) {
+      refrescarPendientes();
+    }
     const alCambiarConexion = () => setEnLinea(navigator.onLine);
     window.addEventListener("online", alCambiarConexion);
     window.addEventListener("offline", alCambiarConexion);
@@ -30,7 +39,38 @@ export default function App() {
       window.removeEventListener("online", alCambiarConexion);
       window.removeEventListener("offline", alCambiarConexion);
     };
-  }, []);
+  }, [usuario]);
+
+  // Si no ha iniciado sesion, renderizar pantallas de autenticacion
+  if (!usuario) {
+    if (vistaAuth === "registro") {
+      return (
+        <PantallaRegistro
+          onRegistrado={() => setVistaAuth("login")}
+          onVolver={() => setVistaAuth("login")}
+        />
+      );
+    }
+    if (vistaAuth === "recuperar") {
+      return <PantallaRecuperarContrasena onVolver={() => setVistaAuth("login")} />;
+    }
+    return (
+      <PantallaLogin
+        onLogin={(u) => {
+          setUsuario(u);
+          setVistaAuth("login");
+        }}
+        onIrRegistro={() => setVistaAuth("registro")}
+        onIrRecuperar={() => setVistaAuth("recuperar")}
+      />
+    );
+  }
+
+  const alCerrarSesion = () => {
+    cerrarSesion();
+    setUsuario(null);
+    setVistaAuth("login");
+  };
 
   return (
     <div className="app">
@@ -69,18 +109,45 @@ export default function App() {
                 <p className="app-sub">Tamizaje neonatal por oximetría de pulso</p>
               </div>
             </div>
-            <div className="app-estado">
-              {enLinea ? (
-                <span className="app-online">
-                  <span className="app-dot app-dot-ok"></span>
-                  En línea
+
+            <div className="app-cab-derecha">
+              <div className="app-usuario-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span className="app-usuario-nombre" title={`DNI: ${usuario.dni}`}>
+                  {usuario.nombre}
                 </span>
-              ) : (
-                <span className="app-offline">
-                  <span className="app-dot app-dot-no"></span>
-                  Sin conexión
-                </span>
-              )}
+                <button
+                  type="button"
+                  className="app-btn-logout"
+                  onClick={alCerrarSesion}
+                  title="Cerrar sesión"
+                  aria-label="Cerrar sesión"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  <span>Salir</span>
+                </button>
+              </div>
+
+              <div className="app-estado">
+                {enLinea ? (
+                  <span className="app-online">
+                    <span className="app-dot app-dot-ok"></span>
+                    En línea
+                  </span>
+                ) : (
+                  <span className="app-offline">
+                    <span className="app-dot app-dot-no"></span>
+                    Sin conexión
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -329,6 +396,59 @@ body {
   font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   letter-spacing: 0.03em;
   font-weight: 400;
+}
+
+/* --- Header right container & User Badge --- */
+.app-cab-derecha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.app-usuario-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 12px;
+  border-radius: var(--radio-pill);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #f1f5f9;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.app-usuario-nombre {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radio-pill);
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.app-btn-logout:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ffffff;
+  border-color: rgba(239, 68, 68, 0.5);
 }
 
 /* --- Connection status --- */
