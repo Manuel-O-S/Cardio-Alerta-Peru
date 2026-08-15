@@ -23,19 +23,24 @@ const CLAVE = "cardio-alerta.ubicacion.v1";
  * compartido/establecimientos.json.
  */
 export const ESTABLECIMIENTOS = [
-  { id: "lima",      nombre: "Lima",           departamento: "Lima",        altitudMsnm: 150,  lat: -12.0464, lon: -77.0428 },
-  { id: "callao",    nombre: "Callao",         departamento: "Callao",      altitudMsnm: 150,  lat: -12.0508, lon: -77.1268 },
-  { id: "trujillo",  nombre: "Trujillo",       departamento: "La Libertad", altitudMsnm: 34,   lat: -8.1116,  lon: -79.0288 },
-  { id: "iquitos",   nombre: "Iquitos",        departamento: "Loreto",      altitudMsnm: 106,  lat: -3.7437,  lon: -73.2516 },
-  { id: "arequipa",  nombre: "Arequipa",       departamento: "Arequipa",    altitudMsnm: 2335, lat: -16.4090, lon: -71.5375 },
-  { id: "cajamarca", nombre: "Cajamarca",      departamento: "Cajamarca",   altitudMsnm: 2750, lat: -7.1617,  lon: -78.5127 },
-  { id: "huaraz",    nombre: "Huaraz",         departamento: "Ancash",      altitudMsnm: 3052, lat: -9.5278,  lon: -77.5278 },
-  { id: "huancayo",  nombre: "Huancayo",       departamento: "Junin",       altitudMsnm: 3249, lat: -12.0653, lon: -75.2049 },
-  { id: "cusco",     nombre: "Cusco",          departamento: "Cusco",       altitudMsnm: 3399, lat: -13.5320, lon: -71.9675 },
-  { id: "juliaca",   nombre: "Juliaca",        departamento: "Puno",        altitudMsnm: 3825, lat: -15.4990, lon: -70.1338 },
-  { id: "puno",      nombre: "Puno",           departamento: "Puno",        altitudMsnm: 3827, lat: -15.8402, lon: -70.0219 },
-  { id: "pasco",     nombre: "Cerro de Pasco", departamento: "Pasco",       altitudMsnm: 4330, lat: -10.6828, lon: -76.2561 },
-  { id: "rinconada", nombre: "La Rinconada",   departamento: "Puno",        altitudMsnm: 5100, lat: -14.6280, lon: -69.4450 },
+  { id: "chachapoyas",       nombre: "Chachapoyas",                   departamento: "Amazonas",    altitudMsnm: 2335, lat: -6.2308,  lon: -77.8662 },
+  { id: "bagua",             nombre: "Bagua",                         departamento: "Amazonas",    altitudMsnm: 435,  lat: -5.6395,  lon: -78.5308 },
+  { id: "utcubamba",         nombre: "Bagua Grande (Utcubamba)",      departamento: "Amazonas",    altitudMsnm: 476,  lat: -5.7539,  lon: -78.4406 },
+  { id: "condorcanqui",      nombre: "Santa María de Nieva",          departamento: "Amazonas",    altitudMsnm: 201,  lat: -4.6001,  lon: -77.8656 },
+  { id: "rodriguez-mendoza", nombre: "Rodríguez de Mendoza",          departamento: "Amazonas",    altitudMsnm: 1598, lat: -6.3956,  lon: -77.4786 },
+  { id: "lima",              nombre: "Lima",                          departamento: "Lima",        altitudMsnm: 150,  lat: -12.0464, lon: -77.0428 },
+  { id: "callao",            nombre: "Callao",                        departamento: "Callao",      altitudMsnm: 150,  lat: -12.0508, lon: -77.1268 },
+  { id: "trujillo",          nombre: "Trujillo",                      departamento: "La Libertad", altitudMsnm: 34,   lat: -8.1116,  lon: -79.0288 },
+  { id: "iquitos",           nombre: "Iquitos",                       departamento: "Loreto",      altitudMsnm: 106,  lat: -3.7437,  lon: -73.2516 },
+  { id: "arequipa",          nombre: "Arequipa",                      departamento: "Arequipa",    altitudMsnm: 2335, lat: -16.4090, lon: -71.5375 },
+  { id: "cajamarca",         nombre: "Cajamarca",                     departamento: "Cajamarca",   altitudMsnm: 2750, lat: -7.1617,  lon: -78.5127 },
+  { id: "huaraz",            nombre: "Huaraz",                        departamento: "Ancash",      altitudMsnm: 3052, lat: -9.5278,  lon: -77.5278 },
+  { id: "huancayo",          nombre: "Huancayo",                      departamento: "Junin",       altitudMsnm: 3249, lat: -12.0653, lon: -75.2049 },
+  { id: "cusco",             nombre: "Cusco",                         departamento: "Cusco",       altitudMsnm: 3399, lat: -13.5320, lon: -71.9675 },
+  { id: "juliaca",           nombre: "Juliaca",                       departamento: "Puno",        altitudMsnm: 3825, lat: -15.4990, lon: -70.1338 },
+  { id: "puno",              nombre: "Puno",                          departamento: "Puno",        altitudMsnm: 3827, lat: -15.8402, lon: -70.0219 },
+  { id: "pasco",             nombre: "Cerro de Pasco",                departamento: "Pasco",       altitudMsnm: 4330, lat: -10.6828, lon: -76.2561 },
+  { id: "rinconada",         nombre: "La Rinconada",                  departamento: "Puno",        altitudMsnm: 5100, lat: -14.6280, lon: -69.4450 },
 ];
 
 export const UBICACION_POR_DEFECTO = {

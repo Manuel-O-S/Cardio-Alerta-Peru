@@ -22,6 +22,96 @@ export const EXAMENES_LABELS = {
 };
 
 export const HOSPITALES = {
+  chachapoyas: [
+    {
+      id: "virgen-fatima",
+      nombre: "Hospital Regional Virgen de Fátima",
+      profesionales: { disponibles: 4, total: 4 },
+      examenes: { electrocardiograma: true, ecografia: true, radiografiaTorax: true, ucin: true },
+      direccion: "Jr. Triunfo 035, Chachapoyas",
+      contacto: "(041) 477406",
+    },
+    {
+      id: "higos-urco",
+      nombre: "Hospital Higos Urco – EsSalud",
+      profesionales: { disponibles: 3, total: 4 },
+      examenes: { electrocardiograma: true, ecografia: true, radiografiaTorax: true, ucin: false },
+      direccion: "Jr. Ortiz Arrieta 612, Chachapoyas",
+      contacto: "(041) 579516",
+    },
+  ],
+  bagua: [
+    {
+      id: "gustavo-lanatta",
+      nombre: "Hospital de Apoyo Gustavo Lanatta Luján",
+      profesionales: { disponibles: 3, total: 4 },
+      examenes: { electrocardiograma: true, ecografia: true, radiografiaTorax: true, ucin: true },
+      direccion: "Av. Héroes del Cenepa 980, Bagua",
+      contacto: "(041) 771159",
+    },
+    {
+      id: "heroes-cenepa",
+      nombre: "Hospital I Héroes del Cenepa – EsSalud",
+      profesionales: { disponibles: 3, total: 4 },
+      examenes: { electrocardiograma: true, ecografia: true, radiografiaTorax: true, ucin: false },
+      direccion: "Jr. Lambayeque 517, Bagua",
+      contacto: "(041) 471424",
+    },
+    {
+      id: "clinica-interregional",
+      nombre: "Clínica Interregional",
+      profesionales: { disponibles: 2, total: 3 },
+      examenes: { electrocardiograma: true, ecografia: true, radiografiaTorax: true, ucin: false },
+      direccion: "Av. Héroes del Cenepa 1795, Bagua",
+      contacto: "986215787",
+    },
+  ],
+  utcubamba: [
+    {
+      id: "santiago-apostol",
+      nombre: "Hospital Santiago Apóstol de Utcubamba",
+      profesionales: { disponibles: 3, total: 4 },
+      examenes: { electrocardiograma: true, ecografia: true, radiografiaTorax: true, ucin: true },
+      direccion: "Av. Felipe Santiago s/n, Bagua Grande",
+      contacto: "Central de Emergencias",
+    },
+    {
+      id: "buen-samaritano",
+      nombre: "Hospital El Buen Samaritano – EsSalud",
+      profesionales: { disponibles: 3, total: 4 },
+      examenes: { electrocardiograma: true, ecografia: true, radiografiaTorax: true, ucin: false },
+      direccion: "Jr. Angamos 990, Bagua Grande",
+      contacto: "(041) 474001",
+    },
+    {
+      id: "servimedic-amazonas",
+      nombre: "Clínica Servimedic Amazonas",
+      profesionales: { disponibles: 2, total: 3 },
+      examenes: { electrocardiograma: true, ecografia: true, radiografiaTorax: true, ucin: false },
+      direccion: "Jr. Angamos 1027, Bagua Grande",
+      contacto: "966836775",
+    },
+  ],
+  condorcanqui: [
+    {
+      id: "santa-maria-nieva",
+      nombre: "Hospital Santa María de Nieva",
+      profesionales: { disponibles: 3, total: 4 },
+      examenes: { electrocardiograma: true, ecografia: true, radiografiaTorax: true, ucin: false },
+      direccion: "Calle Principal s/n, Nieva",
+      contacto: "Central de Emergencias",
+    },
+  ],
+  "rodriguez-mendoza": [
+    {
+      id: "maria-auxiliadora",
+      nombre: "Hospital María Auxiliadora",
+      profesionales: { disponibles: 3, total: 4 },
+      examenes: { electrocardiograma: true, ecografia: true, radiografiaTorax: true, ucin: false },
+      direccion: "Jr. Alonso de Alvarado s/n, San Nicolás",
+      contacto: "Central de Emergencias",
+    },
+  ],
   lima: [
     {
       id: "rebagliati",
