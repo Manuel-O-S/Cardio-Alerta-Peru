@@ -9,6 +9,8 @@ import {
   ubicacionManual,
   validarCoordenadas,
 } from "./ubicacion.js";
+import { hospitalesDeCiudad } from "./hospitales.js";
+import TarjetaHospital from "./TarjetaHospital.jsx";
 
 /**
  * Configura donde esta el establecimiento: altitud y coordenadas juntas.
@@ -33,6 +35,7 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
   const [mensaje, setMensaje] = useState("");
   const [ubicando, setUbicando] = useState(false);
   const [sugerencia, setSugerencia] = useState(null);
+  const [ciudadExpandida, setCiudadExpandida] = useState(null);
 
   const aplicar = (nueva) => {
     guardarUbicacion(nueva);
@@ -187,22 +190,56 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
 
       {modo === "catalogo" ? (
         <div className="ubi-lista-marco">
-        <ul className="ubi-lista">
-          {ESTABLECIMIENTOS.map((e, i) => (
-            <li key={e.id} style={{ animationDelay: `${0.03 * i}s` }}>
-              <button type="button" className="ubi-opcion" onClick={() => elegirDelCatalogo(e.id)}>
-                <div className="ubi-opcion-info">
-                  <span className="ubi-opcion-nombre">{e.nombre}</span>
-                  <span className="ubi-opcion-depto">{e.departamento}</span>
-                </div>
-                <span className="ubi-opcion-alt tz-mono">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
-                  {e.altitudMsnm} msnm
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+          <ul className="ubi-lista">
+            {ESTABLECIMIENTOS.map((e, i) => {
+              const expandida = ciudadExpandida === e.id;
+              const hospitales = expandida ? hospitalesDeCiudad(e.id) : [];
+              return (
+                <li key={e.id} style={{ animationDelay: `${0.03 * i}s` }}>
+                  <button
+                    type="button"
+                    className={`ubi-opcion ${expandida ? "ubi-opcion-activa" : ""}`}
+                    onClick={() => setCiudadExpandida(expandida ? null : e.id)}
+                  >
+                    <div className="ubi-opcion-info">
+                      <span className="ubi-opcion-nombre">{e.nombre}</span>
+                      <span className="ubi-opcion-depto">{e.departamento}</span>
+                    </div>
+                    <div className="ubi-opcion-derecha">
+                      <span className="ubi-opcion-alt tz-mono">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+                        {e.altitudMsnm} msnm
+                      </span>
+                      <svg
+                        className={`ubi-chevron ${expandida ? "ubi-chevron-abierto" : ""}`}
+                        width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </div>
+                  </button>
+                  {expandida && (
+                    <div className="ubi-hospitales">
+                      {hospitales.length > 0 ? (
+                        hospitales.map((h) => (
+                          <TarjetaHospital
+                            key={h.id}
+                            hospital={h}
+                            onSeleccionar={() => elegirDelCatalogo(e.id)}
+                          />
+                        ))
+                      ) : (
+                        <p className="ubi-sin-hospitales">
+                          No hay hospitales registrados para esta ciudad a\u00FAn.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       ) : (
         <>
@@ -452,16 +489,6 @@ const CSS_UBI = `
   list-style: none;
   margin: 0;
   padding: 0 6px 0 0;
-  /* Unos 4 elementos visibles. El resto se ve con la rueda del raton o
-     deslizando: la lista tiene 13 y mostrarla entera empujaba el resto del
-     formulario fuera de la pantalla. */
-  max-height: 296px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  /* Firefox */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.45) var(--campo);
 }
 
 /* Barra de scroll visible pero discreta: si no se ve, nadie sabe que hay mas
@@ -586,5 +613,53 @@ const CSS_UBI = `
 .ubi-cancelar:hover {
   color: var(--rojo);
   background: var(--rojo-suave);
+}
+
+/* ========== CIUDAD EXPANDIDA ========== */
+.ubi-opcion-activa {
+  border-color: var(--acento-linea);
+  background: var(--acento-suave);
+  box-shadow: var(--sombra-sm);
+}
+
+.ubi-opcion-activa:hover {
+  transform: none;
+}
+
+.ubi-opcion-derecha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.ubi-chevron {
+  color: var(--suave);
+  transition: transform 0.25s var(--ease-out);
+}
+
+.ubi-chevron-abierto {
+  transform: rotate(180deg);
+  color: var(--acento);
+}
+
+/* ========== SUB-PANEL DE HOSPITALES ========== */
+.ubi-hospitales {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0 8px 0;
+  animation: fadeInUp 0.3s var(--ease-out) both;
+}
+
+.ubi-sin-hospitales {
+  margin: 0;
+  padding: 14px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--tenue);
+  background: var(--campo);
+  border-radius: var(--radio-sm);
+  border: 1px dashed var(--linea);
 }
 `;
