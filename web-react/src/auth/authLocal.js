@@ -42,15 +42,21 @@ export async function iniciarSesion(dni, contrasena) {
   }
 
   // Consultamos la tabla "perfiles" para obtener el rol exacto (admin o doctor)
-  const { data: perfilData } = await supabase
+  const { data: perfilData, error: perfilError } = await supabase
     .from("perfiles")
     .select("rol, nombre")
     .eq("id", data.user.id)
     .single();
 
-  const rol = perfilData?.rol || "doctor";
-  const nombre = perfilData?.nombre || "Doctor";
-  const sessionUser = { dni, nombre, rol, id: data.user?.id };
+  if (perfilError || !perfilData) {
+    // Si no está en la tabla perfiles, le denegamos el acceso (fue eliminado o no registrado correctamente)
+    await supabase.auth.signOut();
+    return { ok: false, error: "Acceso denegado. Perfil eliminado o no encontrado." };
+  }
+
+  const rol = perfilData.rol;
+  const nombre = perfilData.nombre;
+  const sessionUser = { dni, nombre, rol, id: data.user.id };
 
   return { ok: true, usuario: sessionUser };
 }
@@ -60,7 +66,7 @@ export async function cerrarSesion() {
   await supabase.auth.signOut();
 }
 
-/** Retorna la sesion activa o null (usado as\u00EDncronamente). */
+/** Retorna la sesion activa o null (usado asíncronamente). */
 export async function obtenerSesionAsync() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return null;
@@ -68,34 +74,44 @@ export async function obtenerSesionAsync() {
   const user = session.user;
   const dni = user.email ? user.email.replace(DOMAIN, "") : "";
   
-  const { data: perfilData } = await supabase
+  const { data: perfilData, error } = await supabase
     .from("perfiles")
     .select("rol, nombre")
     .eq("id", user.id)
     .single();
 
-  const rol = perfilData?.rol || "doctor";
-  const nombre = perfilData?.nombre || "Doctor";
+  if (error || !perfilData) {
+    await supabase.auth.signOut();
+    return null;
+  }
+
+  const rol = perfilData.rol;
+  const nombre = perfilData.nombre;
 
   return { dni, nombre, rol, id: user.id };
 }
 
-/** Escucha cambios en la sesi\u00F3n. Útil para reaccionar cuando expira o se loguea. */
+/** Escucha cambios en la sesión. Útil para reaccionar cuando expira o se loguea. */
 export function onAuthStateChange(callback) {
   const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
     if (session) {
       const user = session.user;
       const dni = user.email ? user.email.replace(DOMAIN, "") : "";
       
-      const { data: perfilData } = await supabase
+      const { data: perfilData, error } = await supabase
         .from("perfiles")
         .select("rol, nombre")
         .eq("id", user.id)
         .single();
         
-      const rol = perfilData?.rol || "doctor";
-      const nombre = perfilData?.nombre || "Doctor";
-      callback({ dni, nombre, rol, id: user.id });
+      if (error || !perfilData) {
+        await supabase.auth.signOut();
+        callback(null);
+      } else {
+        const rol = perfilData.rol;
+        const nombre = perfilData.nombre;
+        callback({ dni, nombre, rol, id: user.id });
+      }
     } else {
       callback(null);
     }

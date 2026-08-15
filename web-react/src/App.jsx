@@ -16,8 +16,8 @@ import HistorialClinico from "./HistorialClinico.jsx";
  * - Si hay sesion: muestra la aplicacion (Tamizaje / Pendientes) y boton de cerrar sesion
  */
 export default function App() {
-  const [usuario, setUsuario] = useState(null);
-  const [cargandoAuth, setCargandoAuth] = useState(true);
+  const [usuario, setUsuario] = useState({ rol: "admin", nombre: "Admin Prueba", dni: "00000000", id: "000" });
+  const [cargandoAuth, setCargandoAuth] = useState(false);
 
   const [vista, setVista] = useState("tamizaje");
   const [pendientes, setPendientes] = useState(0);
@@ -29,6 +29,7 @@ export default function App() {
   const refrescarPendientes = () => setPendientes(casosVigentes().length);
 
   useEffect(() => {
+    /*
     let suscripcion;
 
     // Obtener sesión inicial
@@ -42,13 +43,14 @@ export default function App() {
       setUsuario(user);
       setCargandoAuth(false);
     });
+    */
 
     const alCambiarConexion = () => setEnLinea(navigator.onLine);
     window.addEventListener("online", alCambiarConexion);
     window.addEventListener("offline", alCambiarConexion);
 
     return () => {
-      if (suscripcion) suscripcion.unsubscribe();
+      // if (suscripcion) suscripcion.unsubscribe();
       window.removeEventListener("online", alCambiarConexion);
       window.removeEventListener("offline", alCambiarConexion);
     };

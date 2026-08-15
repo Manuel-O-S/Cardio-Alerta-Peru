@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient.js";
-
 import { createClient } from "@supabase/supabase-js";
 
 const adminAuthClient = createClient(
@@ -14,48 +13,77 @@ const adminAuthClient = createClient(
   }
 );
 
-/**
- * Panel Administrativo.
- * Solo accesible para usuarios con rol "admin".
- */
 export default function PanelAdmin() {
+  const [vistaActiva, setVistaActiva] = useState("doctores");
+  
+  // Estados para Doctores
+  const [doctores, setDoctores] = useState([]);
+  const [cargandoDoctores, setCargandoDoctores] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
+  
+  // Estados para Log
+  const [registros, setRegistros] = useState([]);
+  const [cargandoRegistros, setCargandoRegistros] = useState(false);
+
+  // Estados Modal
+  const [mostrarModal, setMostrarModal] = useState(false);
   const [dni, setDni] = useState("");
   const [nombre, setNombre] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [mensaje, setMensaje] = useState({ tipo: "", texto: "" });
-  const [cargando, setCargando] = useState(false);
-  const [registros, setRegistros] = useState([]);
-  
+  const [cargandoForm, setCargandoForm] = useState(false);
+
+  const cargarDoctores = async () => {
+    setCargandoDoctores(true);
+    const { data, error } = await supabase
+      .from("perfiles")
+      .select("*")
+      .eq("rol", "doctor")
+      .order("nombre", { ascending: true });
+      
+    if (!error && data) setDoctores(data);
+    setCargandoDoctores(false);
+  };
+
   const cargarRegistros = async () => {
+    setCargandoRegistros(true);
     const { data, error } = await supabase
       .from("registro_ingresos")
-      .select("fecha_ingreso, doctor_id")
+      .select(`
+        fecha_ingreso,
+        doctor_id,
+        perfiles!doctor_id (
+          nombre,
+          dni
+        )
+      `)
       .order("fecha_ingreso", { ascending: false })
-      .limit(20);
+      .limit(50);
       
     if (!error && data) {
       setRegistros(data);
     }
+    setCargandoRegistros(false);
   };
 
   useEffect(() => {
-    cargarRegistros();
-  }, []);
+    if (vistaActiva === "doctores") cargarDoctores();
+    if (vistaActiva === "log") cargarRegistros();
+  }, [vistaActiva]);
 
   const registrarDoctor = async (e) => {
     e.preventDefault();
     setMensaje({ tipo: "", texto: "" });
-    setCargando(true);
+    setCargandoForm(true);
 
     if (dni.length !== 8) {
       setMensaje({ tipo: "error", texto: "El DNI debe tener 8 dígitos." });
-      setCargando(false);
+      setCargandoForm(false);
       return;
     }
     
     const email = `${dni}@cardioalerta.pe`;
     
-    // Usamos adminAuthClient en vez de supabase para no sobreescribir la sesión del admin
     const { data, error } = await adminAuthClient.auth.signUp({
       email,
       password: contrasena,
@@ -68,12 +96,11 @@ export default function PanelAdmin() {
     });
 
     if (error) {
-      setCargando(false);
+      setCargandoForm(false);
       setMensaje({ tipo: "error", texto: "Error al crear: " + error.message });
       return;
     }
 
-    // Insertar en la tabla perfiles
     if (data.user) {
       const { error: perfilError } = await supabase.from("perfiles").insert({
         id: data.user.id,
@@ -83,122 +110,573 @@ export default function PanelAdmin() {
       });
 
       if (perfilError) {
-        console.error("Error al crear el perfil:", perfilError);
-        // No mostramos error fuerte porque el login igual intentará funcionar, 
-        // pero idealmente se maneja con un trigger en la BD.
+        console.error("Error perfil:", perfilError);
       }
     }
 
-    setCargando(false);
-    setMensaje({ tipo: "exito", texto: "Doctor creado correctamente." });
+    setCargandoForm(false);
+    setMostrarModal(false);
     setDni("");
     setNombre("");
     setContrasena("");
+    cargarDoctores();
   };
 
+  const eliminarDoctor = async (id, nombreDoc) => {
+    if (!window.confirm(`¿Estás seguro de que deseas revocar permanentemente el acceso del doctor ${nombreDoc}?`)) return;
+    
+    // Al eliminar el perfil, se bloquea el acceso gracias a la validación en authLocal.js
+    const { error } = await supabase.from("perfiles").delete().eq("id", id);
+    if (!error) {
+      cargarDoctores();
+    } else {
+      alert("Error al eliminar doctor: " + error.message);
+    }
+  };
+
+  const doctoresFiltrados = doctores.filter(d => 
+    d.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
+    d.dni.includes(busqueda)
+  );
+
   return (
-    <div style={{ padding: "30px", maxWidth: "800px", margin: "0 auto" }}>
-      <h2 style={{ color: "var(--marino)" }}>Panel Administrativo</h2>
-      <p style={{ color: "var(--suave)", marginBottom: "30px" }}>
-        Crea accesos para los doctores y revisa el historial de ingresos.
-      </p>
-
-      <div style={{ display: "grid", gap: "30px", gridTemplateColumns: "1fr 1fr" }}>
-        {/* Formulario de creación */}
-        <div style={{ background: "white", padding: "24px", borderRadius: "12px", border: "1px solid var(--linea)" }}>
-          <h3 style={{ marginTop: 0, marginBottom: "20px" }}>Registrar Nuevo Doctor</h3>
+    <div className="admin-dashboard">
+      <style>{CSS_ADMIN}</style>
+      
+      {/* SIDEBAR */}
+      <aside className="admin-sidebar">
+        <div className="admin-sidebar-header">
+          <h2>Panel de Control</h2>
+        </div>
+        <nav className="admin-nav">
+          <button 
+            className={`admin-nav-item ${vistaActiva === "doctores" ? "active" : ""}`}
+            onClick={() => setVistaActiva("doctores")}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            Personal Médico
+          </button>
           
-          <form onSubmit={registrarDoctor} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-            <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "14px", fontWeight: 500 }}>
-              DNI del Doctor
-              <input 
-                type="text" 
-                value={dni} 
-                onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
-                maxLength={8}
-                required
-                style={{ padding: "10px", borderRadius: "6px", border: "1px solid var(--linea)", outline: "none" }}
-              />
-            </label>
+          <button 
+            className={`admin-nav-item ${vistaActiva === "log" ? "active" : ""}`}
+            onClick={() => setVistaActiva("log")}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            Log de Accesos
+          </button>
+        </nav>
+      </aside>
 
-            <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "14px", fontWeight: 500 }}>
-              Nombre Completo
-              <input 
-                type="text" 
-                value={nombre} 
-                onChange={(e) => setNombre(e.target.value)}
-                required
-                style={{ padding: "10px", borderRadius: "6px", border: "1px solid var(--linea)", outline: "none" }}
-              />
-            </label>
-
-            <label style={{ display: "flex", flexDirection: "column", gap: "6px", fontSize: "14px", fontWeight: 500 }}>
-              Contraseña Temporal
-              <input 
-                type="text" 
-                value={contrasena} 
-                onChange={(e) => setContrasena(e.target.value)}
-                required
-                minLength={6}
-                style={{ padding: "10px", borderRadius: "6px", border: "1px solid var(--linea)", outline: "none" }}
-              />
-            </label>
-
-            {mensaje.texto && (
-              <div style={{ 
-                padding: "10px", 
-                borderRadius: "6px", 
-                fontSize: "14px",
-                backgroundColor: mensaje.tipo === "error" ? "var(--rojo-suave)" : "rgba(34, 197, 94, 0.1)",
-                color: mensaje.tipo === "error" ? "var(--rojo)" : "#166534"
-              }}>
-                {mensaje.texto}
+      {/* MAIN CONTENT */}
+      <div className="admin-content">
+        {vistaActiva === "doctores" && (
+          <div className="admin-panel fade-in">
+            <div className="admin-toolbar">
+              <button className="admin-btn-primary" onClick={() => setMostrarModal(true)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Añadir Nuevo
+              </button>
+              
+              <div className="admin-search">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input 
+                  type="text" 
+                  placeholder="Buscar por DNI o Nombre..." 
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                />
               </div>
-            )}
+            </div>
 
-            <button 
-              type="submit" 
-              disabled={cargando}
-              style={{ 
-                background: "var(--acento)", color: "white", padding: "12px", 
-                borderRadius: "6px", border: "none", fontWeight: 600, cursor: "pointer", marginTop: "10px" 
-              }}
-            >
-              {cargando ? "Registrando..." : "Registrar Doctor"}
-            </button>
-          </form>
-        </div>
-
-        {/* Log de ingresos */}
-        <div style={{ background: "white", padding: "24px", borderRadius: "12px", border: "1px solid var(--linea)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-            <h3 style={{ margin: 0 }}>Últimos Ingresos</h3>
-            <button 
-              onClick={cargarRegistros}
-              style={{ background: "none", border: "none", color: "var(--acento)", cursor: "pointer", fontSize: "14px" }}
-            >
-              Refrescar
-            </button>
+            <div className="admin-table-container">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>DNI</th>
+                    <th>Nombre Completo</th>
+                    <th>Rol</th>
+                    <th style={{ textAlign: "right" }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cargandoDoctores ? (
+                    <tr><td colSpan="4" style={{ textAlign: "center", padding: "30px" }}>Cargando doctores...</td></tr>
+                  ) : doctoresFiltrados.length === 0 ? (
+                    <tr><td colSpan="4" style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>No se encontraron registros.</td></tr>
+                  ) : (
+                    doctoresFiltrados.map((doc) => (
+                      <tr key={doc.id}>
+                        <td style={{ fontWeight: "500" }}>{doc.dni}</td>
+                        <td>{doc.nombre}</td>
+                        <td>
+                          <span className="admin-badge-rol">Doctor</span>
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          <button 
+                            className="admin-btn-action admin-btn-delete"
+                            onClick={() => eliminarDoctor(doc.id, doc.nombre)}
+                            title="Eliminar acceso"
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+              <div className="admin-table-footer">
+                Resultados: {doctoresFiltrados.length} doctores
+              </div>
+            </div>
           </div>
+        )}
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {registros.length === 0 ? (
-              <p style={{ color: "var(--tenue)", fontSize: "14px" }}>No hay registros recientes.</p>
-            ) : (
-              registros.map((reg, idx) => (
-                <div key={idx} style={{ padding: "12px", background: "var(--campo)", borderRadius: "6px", fontSize: "13px" }}>
-                  <div style={{ fontWeight: 600, color: "var(--tinta)" }}>
-                    ID: {reg.doctor_id?.slice(0, 8)}...
-                  </div>
-                  <div style={{ color: "var(--suave)" }}>
-                    {new Date(reg.fecha_ingreso).toLocaleString()}
-                  </div>
-                </div>
-              ))
-            )}
+        {vistaActiva === "log" && (
+          <div className="admin-panel fade-in">
+            <div className="admin-toolbar" style={{ justifyContent: "space-between" }}>
+              <h2 style={{ margin: 0, fontSize: "1.25rem", color: "#1e293b" }}>Historial de Accesos</h2>
+              <button className="admin-btn-secondary" onClick={cargarRegistros}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                Actualizar
+              </button>
+            </div>
+
+            <div className="admin-table-container">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Fecha y Hora</th>
+                    <th>Doctor</th>
+                    <th>DNI</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cargandoRegistros ? (
+                    <tr><td colSpan="3" style={{ textAlign: "center", padding: "30px" }}>Cargando registros...</td></tr>
+                  ) : registros.length === 0 ? (
+                    <tr><td colSpan="3" style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>No hay registros recientes.</td></tr>
+                  ) : (
+                    registros.map((reg, idx) => (
+                      <tr key={idx}>
+                        <td style={{ whiteSpace: "nowrap" }}>{new Date(reg.fecha_ingreso).toLocaleString('es-PE')}</td>
+                        <td style={{ fontWeight: "500" }}>{reg.perfiles?.nombre || "Usuario Eliminado"}</td>
+                        <td style={{ color: "#64748b" }}>{reg.perfiles?.dni || "---"}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
       </div>
+
+      {/* MODAL CREACION */}
+      {mostrarModal && (
+        <div className="admin-modal-overlay fade-in">
+          <div className="admin-modal">
+            <div className="admin-modal-header">
+              <h3>Registrar Nuevo Doctor</h3>
+              <button className="admin-modal-close" onClick={() => { setMostrarModal(false); setMensaje({tipo:"",texto:""}); }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            
+            <form onSubmit={registrarDoctor} className="admin-form">
+              <div className="admin-form-group">
+                <label>DNI del Doctor</label>
+                <input 
+                  type="text" 
+                  value={dni} 
+                  onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
+                  maxLength={8}
+                  placeholder="Ej: 12345678"
+                  required
+                />
+              </div>
+
+              <div className="admin-form-group">
+                <label>Nombre Completo</label>
+                <input 
+                  type="text" 
+                  value={nombre} 
+                  onChange={(e) => setNombre(e.target.value)}
+                  placeholder="Ej: Dr. Juan Pérez"
+                  required
+                />
+              </div>
+
+              <div className="admin-form-group">
+                <label>Contraseña Temporal</label>
+                <input 
+                  type="text" 
+                  value={contrasena} 
+                  onChange={(e) => setContrasena(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              {mensaje.texto && (
+                <div className={`admin-alert ${mensaje.tipo === "error" ? "error" : "success"}`}>
+                  {mensaje.texto}
+                </div>
+              )}
+
+              <div className="admin-modal-footer">
+                <button type="button" className="admin-btn-secondary" onClick={() => setMostrarModal(false)}>Cancelar</button>
+                <button type="submit" className="admin-btn-primary" disabled={cargandoForm}>
+                  {cargandoForm ? "Creando..." : "Crear Doctor"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const CSS_ADMIN = `
+  .admin-dashboard {
+    display: flex;
+    min-height: calc(100vh - 70px);
+    background: #f8fafc;
+    margin: -32px -20px -48px -20px;
+  }
+
+  .admin-sidebar {
+    width: 260px;
+    background: #0f172a;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .admin-sidebar-header {
+    padding: 24px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .admin-sidebar-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #f8fafc;
+    letter-spacing: 0.02em;
+  }
+
+  .admin-nav {
+    padding: 20px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .admin-nav-item {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 12px 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+  }
+
+  .admin-nav-item:hover {
+    background: rgba(255,255,255,0.05);
+    color: white;
+  }
+
+  .admin-nav-item.active {
+    background: #3b82f6;
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+
+  .admin-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 30px;
+    background: #f1f5f9;
+  }
+
+  .admin-panel {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+    overflow: hidden;
+  }
+
+  .admin-toolbar {
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+  }
+
+  .admin-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .admin-search svg {
+    position: absolute;
+    left: 12px;
+    color: #94a3b8;
+  }
+
+  .admin-search input {
+    padding: 10px 10px 10px 38px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    outline: none;
+    width: 280px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+
+  .admin-search input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+  }
+
+  .admin-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    box-shadow: 0 2px 4px rgba(59,130,246,0.2);
+  }
+
+  .admin-btn-primary:hover {
+    background: #2563eb;
+  }
+
+  .admin-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .admin-btn-secondary:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+  }
+
+  .admin-table-container {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  .admin-table th {
+    background: white;
+    padding: 14px 24px;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 600;
+  }
+
+  .admin-table td {
+    padding: 16px 24px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    font-size: 0.95rem;
+  }
+
+  .admin-table tbody tr {
+    transition: background 0.15s;
+  }
+
+  .admin-table tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  .admin-badge-rol {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .admin-btn-action {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    color: #94a3b8;
+  }
+
+  .admin-btn-delete:hover {
+    background: #fef2f2;
+    color: #ef4444;
+  }
+
+  .admin-table-footer {
+    padding: 16px 24px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    color: #64748b;
+    font-size: 0.85rem;
+  }
+
+  /* Modal */
+  .admin-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .admin-modal {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+
+  .admin-modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .admin-modal-header h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    color: #0f172a;
+  }
+
+  .admin-modal-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+  }
+
+  .admin-modal-close:hover {
+    background: #f1f5f9;
+    color: #334155;
+  }
+
+  .admin-form {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .admin-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .admin-form-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+  }
+
+  .admin-form-group input {
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    outline: none;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+  }
+
+  .admin-form-group input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+  }
+
+  .admin-alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .admin-alert.error {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+  }
+
+  .admin-alert.success {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+  }
+
+  .admin-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .fade-in {
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+`;
