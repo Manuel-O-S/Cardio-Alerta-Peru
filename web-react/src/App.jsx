@@ -31,13 +31,13 @@ export default function App() {
   useEffect(() => {
     let suscripcion;
 
-    // Obtener sesi\u00F3n inicial
+    // Obtener sesión inicial
     obtenerSesionAsync().then((user) => {
       setUsuario(user);
       setCargandoAuth(false);
     });
 
-    // Escuchar cambios de sesi\u00F3n (login, logout)
+    // Escuchar cambios de sesión (login, logout)
     suscripcion = onAuthStateChange((user) => {
       setUsuario(user);
       setCargandoAuth(false);
@@ -57,10 +57,6 @@ export default function App() {
   useEffect(() => {
     if (usuario) {
       refrescarPendientes();
-      // Si el usuario es admin, la vista predeterminada ser\u00E1 el panel de control
-      if (usuario.rol === "admin") {
-        setVista("admin");
-      }
     }
   }, [usuario]);
 
@@ -78,6 +74,60 @@ export default function App() {
     setUsuario(null);
   };
 
+  // === RENDERIZADO EXCLUSIVO PARA ADMINISTRADORES ===
+  if (usuario.rol === "admin") {
+    return (
+      <div className="app">
+        <style>{CSS_APP}</style>
+        <header className="app-cab">
+          <div className="app-cab-fondo"></div>
+          <div className="app-cab-contenido">
+            <div className="app-cab-fila">
+              <div className="app-marca">
+                <div className="app-logo">
+                  <svg viewBox="0 0 40 40" className="app-logo-svg" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#ff6b6b" />
+                        <stop offset="100%" stopColor="#ee5a24" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M20 35 C10 25, 2 18, 2 12 C2 6, 7 2, 12 2 C15.5 2, 18.5 4, 20 7 C21.5 4, 24.5 2, 28 2 C33 2, 38 6, 38 12 C38 18, 30 25, 20 35Z"
+                      fill="url(#hg)"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="app-titulo">Panel Administrativo</h1>
+                  <p className="app-sub">Gestión de usuarios y accesos</p>
+                </div>
+              </div>
+              <div className="app-cab-derecha">
+                <div className="app-usuario-badge">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <span className="app-usuario-nombre" title={`DNI: ${usuario.dni}`}>
+                    Admin: {usuario.nombre}
+                  </span>
+                  <button type="button" className="app-btn-logout" onClick={alCerrarSesion} title="Cerrar sesión">
+                    <span>Salir</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="app-main">
+          <PanelAdmin />
+        </main>
+      </div>
+    );
+  }
+
+  // === RENDERIZADO PARA DOCTORES ===
   return (
     <div className="app">
       <style>{CSS_APP}</style>
@@ -158,20 +208,6 @@ export default function App() {
           </div>
 
           <nav className="app-tabs" aria-label="Secciones">
-            {usuario.rol === "admin" && (
-              <button
-                type="button"
-                className={`app-tab ${vista === "admin" ? "app-tab-on" : ""}`}
-                onClick={() => setVista("admin")}
-                aria-current={vista === "admin"}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
-                Admin
-              </button>
-            )}
-            
             <button
               type="button"
               className={`app-tab ${vista === "tamizaje" ? "app-tab-on" : ""}`}
@@ -179,11 +215,11 @@ export default function App() {
               aria-current={vista === "tamizaje"}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1 2-2h11" />
               </svg>
               Tamizaje
             </button>
-            
+
             <button
               type="button"
               className={`app-tab ${vista === "pendientes" ? "app-tab-on" : ""}`}
@@ -199,7 +235,7 @@ export default function App() {
               Pendientes
               {pendientes > 0 && <span className="app-badge">{pendientes}</span>}
             </button>
-            
+
             <button
               type="button"
               className={`app-tab ${vista === "historial" ? "app-tab-on" : ""}`}
@@ -207,7 +243,7 @@ export default function App() {
               aria-current={vista === "historial"}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
               </svg>
               Historial
             </button>
@@ -216,9 +252,7 @@ export default function App() {
       </header>
 
       <main className="app-main">
-        {vista === "admin" && usuario.rol === "admin" ? (
-          <PanelAdmin />
-        ) : vista === "historial" ? (
+        {vista === "historial" ? (
           <HistorialClinico />
         ) : vista === "tamizaje" ? (
           <FormularioTamizaje
