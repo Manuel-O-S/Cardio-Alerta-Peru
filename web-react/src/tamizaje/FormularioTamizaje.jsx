@@ -141,8 +141,11 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
       if (salida.resultado === Resultado.REPETIR) color = "amarillo";
       if (salida.resultado === Resultado.POSITIVO || salida.resultado === Resultado.NO_ELEGIBLE) color = "rojo";
       
-      const paciente = `Recién nacido - ${f.horasDeVida}h de vida`; // Nombre genérico ya que no piden DNI paciente aún
-      registrarEnHistorial(paciente, color);
+      const identificador = f.apellidoMaterno 
+        ? `RN de ${f.apellidoMaterno}${f.historiaClinica ? ` · HC: ${f.historiaClinica}` : ""}` 
+        : (f.historiaClinica ? `RN · HC: ${f.historiaClinica}` : `Recién nacido · ${f.horasDeVida || 24}h de vida`);
+        
+      registrarEnHistorial(identificador, color);
     }
   }, [salida]);
 

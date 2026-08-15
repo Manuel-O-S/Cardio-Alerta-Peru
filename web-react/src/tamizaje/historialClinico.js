@@ -33,3 +33,7 @@ export function marcarComoSincronizados(ids) {
   }
   guardarHistorial(historial);
 }
+
+export function limpiarHistorial() {
+  localStorage.removeItem(CLAVE_HISTORIAL);
+}
