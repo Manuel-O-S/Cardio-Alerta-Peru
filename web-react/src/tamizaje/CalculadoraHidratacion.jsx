@@ -226,7 +226,7 @@ export default function CalculadoraHidratacion({
             {r.grupo} · dia {r.dia} de vida · {r.mlKgDia} mL/kg/dia
           </p>
           <p className={`hid-rango ${r.superaMaximo ? "hid-rango-alerta" : ""}`}>
-            {`Rango de la tabla: ${r.rango[0]}\u2013${r.rango[1]} cc/kg/dia · maximo ${r.maximoTabla}`}
+            {`Rango de la tabla: ${r.rango[0]}\u2013${r.rango[1]} cc/kg/dia`}
             {r.superaMaximo && " · el valor elegido lo supera"}
           </p>
 
