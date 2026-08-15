@@ -123,24 +123,24 @@ export default function PanelDerivacionHospitales({
 
   const gruposParaMostrar = useMemo(() => {
     if (filtroSeguro === "minsa") {
-      return [{ titulo: "Hospitales MINSA / SIS", icono: "🏥", lista: minsaHosp, clase: "minsa" }];
+      return [{ titulo: "Hospitales MINSA / SIS", lista: minsaHosp, clase: "minsa" }];
     }
     if (filtroSeguro === "essalud") {
-      return [{ titulo: "Hospitales EsSalud", icono: "🏢", lista: essaludHosp, clase: "essalud" }];
+      return [{ titulo: "Hospitales EsSalud", lista: essaludHosp, clase: "essalud" }];
     }
     if (filtroSeguro === "privado") {
-      return [{ titulo: "Clínicas y Centros Privados", icono: "🏨", lista: privadoHosp, clase: "privado" }];
+      return [{ titulo: "Clínicas y Centros Privados", lista: privadoHosp, clase: "privado" }];
     }
     // Todos agrupados
     const res = [];
     if (minsaHosp.length > 0) {
-      res.push({ titulo: "Hospitales MINSA / SIS", icono: "🏥", lista: minsaHosp, clase: "minsa" });
+      res.push({ titulo: "Hospitales MINSA / SIS", lista: minsaHosp, clase: "minsa" });
     }
     if (essaludHosp.length > 0) {
-      res.push({ titulo: "Hospitales EsSalud", icono: "🏢", lista: essaludHosp, clase: "essalud" });
+      res.push({ titulo: "Hospitales EsSalud", lista: essaludHosp, clase: "essalud" });
     }
     if (privadoHosp.length > 0) {
-      res.push({ titulo: "Clínicas Privadas", icono: "🏨", lista: privadoHosp, clase: "privado" });
+      res.push({ titulo: "Clínicas Privadas", lista: privadoHosp, clase: "privado" });
     }
     return res;
   }, [filtroSeguro, minsaHosp, essaludHosp, privadoHosp]);
@@ -292,7 +292,11 @@ export default function PanelDerivacionHospitales({
           {gruposParaMostrar.map((grupo) => (
             <div key={grupo.titulo} className="deriv-grupo-seccion">
               <div className={`deriv-grupo-cab deriv-grupo-cab-${grupo.clase}`}>
-                <span className="deriv-grupo-icono">{grupo.icono}</span>
+                <span className="deriv-grupo-icono">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 21h18" /><path d="M5 21V7l7-4 7 4v14" /><path d="M9 21v-4h6v4" /><path d="M10 10h1" /><path d="M14 10h-1" />
+                  </svg>
+                </span>
                 <span className="deriv-grupo-titulo">{grupo.titulo}</span>
                 <span className="deriv-grupo-conteo">({grupo.lista.length})</span>
               </div>

@@ -321,7 +321,7 @@ body {
 
 /* ========== APP SHELL ========== */
 .app {
-  max-width: 780px;
+  max-width: 1060px;
   margin: 0 auto;
   padding: 0 0 48px;
   min-height: 100vh;

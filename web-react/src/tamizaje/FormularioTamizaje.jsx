@@ -68,6 +68,42 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
   const [ubicacion, setUbicacion] = useState(leerUbicacion);
   const [f, setF] = useState(ESTADO_INICIAL);
   const [enviado, setEnviado] = useState(false);
+  const [seccionActiva, setSeccionActiva] = useState("sec-paciente");
+
+  const irASeccion = (id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      setSeccionActiva(id);
+    }
+  };
+
+  useEffect(() => {
+    const secciones = [
+      "sec-ubicacion",
+      "sec-paciente",
+      "sec-vitales",
+      "sec-sintomas",
+      "sec-contexto",
+      "sec-resultado",
+      "sec-calculadoras",
+      "sec-derivacion",
+    ];
+
+    const handleScroll = () => {
+      const scrollPos = window.scrollY + 180;
+      for (let i = secciones.length - 1; i >= 0; i--) {
+        const el = document.getElementById(secciones[i]);
+        if (el && el.offsetTop <= scrollPos) {
+          setSeccionActiva(secciones[i]);
+          break;
+        }
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const set = (campo) => (valor) => {
     setF((prev) => ({ ...prev, [campo]: valor }));
@@ -139,11 +175,11 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
       let color = "verde";
       if (salida.resultado === Resultado.REPETIR) color = "amarillo";
       if (salida.resultado === Resultado.POSITIVO || salida.resultado === Resultado.NO_ELEGIBLE) color = "rojo";
-      
-      const identificador = f.apellidoMaterno 
-        ? `RN de ${f.apellidoMaterno}${f.historiaClinica ? ` · HC: ${f.historiaClinica}` : ""}` 
+
+      const identificador = f.apellidoMaterno
+        ? `RN de ${f.apellidoMaterno}${f.historiaClinica ? ` · HC: ${f.historiaClinica}` : ""}`
         : (f.historiaClinica ? `RN · HC: ${f.historiaClinica}` : `Recién nacido · ${f.horasDeVida || 24}h de vida`);
-        
+
       registrarEnHistorial(identificador, color);
     }
   }, [salida]);
@@ -197,6 +233,9 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
     setGuardado(false);
   };
 
+  const mostrarCalculadoras = salida?.ok && (salida.resultado === Resultado.POSITIVO || salida.resultado === Resultado.NO_ELEGIBLE);
+  const mostrarDerivacion = salida?.ok && (salida.resultado === Resultado.POSITIVO || salida.resultado === Resultado.REPETIR || salida.resultado === Resultado.NO_ELEGIBLE);
+
   return (
     <div className="tz">
       <style>{CSS}</style>
@@ -212,288 +251,419 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
         </div>
       )}
 
-      <PanelUbicacion ubicacion={ubicacion} onCambio={setUbicacion} />
+      <div className="tz-layout-grid">
+        {/* === SUBMENÚ LATERAL DE NAVEGACIÓN RÁPIDA (IZQUIERDA) === */}
+        <aside className="tz-sidebar-nav">
+          <div className="tz-sidebar-sticky">
+            <div className="tz-sidebar-cabecera">
+              <span className="tz-sidebar-titulo">SECCIONES</span>
+              <span className="tz-sidebar-sub">Navegación rápida</span>
+            </div>
 
-      {banda && (
-        <div className="tz-banda-suelta">
-          <span className="tz-banda-icono">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-          </span>
-          {"Banda "}<strong>{banda.id}</strong>{" \u00B7 corte cr\u00EDtico "}
-          <strong>&lt;{banda.spo2Critico}%</strong>{" \u00B7 pasa con "}
-          <strong>&ge;{banda.spo2Pasa}%</strong>
-          {banda.estado === "provisional" && " \u00B7 umbrales provisionales"}
-        </div>
-      )}
-
-      {/* ---------------- 1. Identificacion ---------------- */}
-      {/* ---------------- 1. Identificacion y contexto ----------------
-          `horas de vida` vive aca y no en una seccion aparte porque decide la
-          elegibilidad: por debajo de 24 h no corresponde tamizar. Sin ese dato
-          el motor no puede aplicar esa puerta. */}
-      <section className="tz-card tz-card-1">
-        <div className="tz-seccion-cab">
-          <span className="tz-paso">1</span>
-          <div>
-            <h2 className="tz-seccion">{"Identificaci\u00F3n del paciente"}</h2>
-            <p className="tz-seccion-desc">{"Solo lo necesario para identificar el caso"}</p>
-          </div>
-        </div>
-
-        <div className="tz-fila">
-          <Campo etiqueta={"N° Historia clínica"}>
-            <input
-              className="tz-input tz-mono"
-              value={f.historiaClinica}
-              onChange={(e) => set("historiaClinica")(e.target.value.replace(/[^a-zA-Z0-9\-_/]/g, "").toUpperCase())}
-              placeholder="RN-2024-0000"
-            />
-          </Campo>
-          <Campo etiqueta={"Apellido y nombre de la madre"} error={errores.apellidoMaterno}>
-            <input
-              className={`tz-input ${errores.apellidoMaterno ? "tz-error" : ""}`}
-              value={f.apellidoMaterno}
-              onChange={(e) => set("apellidoMaterno")(soloLetras(e.target.value))}
-              placeholder={"García Mendoza, Ana"}
-              autoComplete="off"
-            />
-          </Campo>
-        </div>
-
-      </section>
-
-      {/* ---------------- 2. Signos vitales ----------------
-          La oximetria va arriba y destacada: es el dato que determina el
-          resultado. Peso, FC y FR van debajo y son opcionales: solo generan
-          avisos, nunca cambian el resultado del tamizaje. */}
-      <section className="tz-card tz-card-2">
-        <div className="tz-seccion-cab">
-          <span className="tz-paso">2</span>
-          <div>
-            <h2 className="tz-seccion">Signos vitales</h2>
-            <p className="tz-seccion-desc">{"La saturación determina el resultado"}</p>
-          </div>
-          {/* La duda real no es que significa "preductal", sino donde va el
-              sensor. Una foto lo resuelve sin ocupar sitio hasta que se pide. */}
-          <AyudaSensores />
-        </div>
-
-        <div className="tz-fila">
-          <Campo
-            etiqueta={`SpO₂ preductal (%)`}
-            error={errores.spo2Preductal}
-          >
-            <input
-              className={`tz-input tz-mono ${errores.spo2Preductal || avisoCritico ? "tz-error" : ""}`}
-              type="text"
-              inputMode="numeric"
-              value={f.spo2Preductal}
-              onChange={(e) => set("spo2Preductal")(e.target.value.replace(/\D/g, "").slice(0, 3))}
-              placeholder="98"
-            />
-          </Campo>
-          <Campo
-            etiqueta={`SpO₂ postductal (%)`}
-            error={errores.spo2Postductal}
-          >
-            <input
-              className={`tz-input tz-mono ${errores.spo2Postductal ? "tz-error" : ""}`}
-              type="text"
-              inputMode="numeric"
-              value={f.spo2Postductal}
-              onChange={(e) => set("spo2Postductal")(e.target.value.replace(/\D/g, "").slice(0, 3))}
-              placeholder="97"
-            />
-          </Campo>
-        </div>
-
-        {avisoCritico && (
-          <p className="tz-alerta tz-alerta-glow">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            {`SpO₂ por debajo del umbral crítico de la banda ${banda.id} (<${banda.spo2Critico}%)`}
-          </p>
-        )}
-        {/* Horas de vida: NO es contexto opcional, es lo que determina si
-            corresponde tamizar. Antes de las 24 h la transicion circulatoria no
-            termino y el resultado no seria valido: el motor devuelve "no
-            elegible". Por eso vive junto a la oximetria. */}
-        <Campo
-          etiqueta="Horas de vida"
-          error={errores.horasDeVida}
-          ayuda={"En horas, no en días"}
-        >
-          <input
-            className={`tz-input tz-mono ${errores.horasDeVida ? "tz-error" : ""}`}
-            type="text"
-            inputMode="numeric"
-            value={f.horasDeVida}
-            onChange={(e) => set("horasDeVida")(e.target.value.replace(/\D/g, "").slice(0, 4))}
-            placeholder="30"
-          />
-        </Campo>
-
-        {f.spo2Preductal !== "" && f.spo2Postductal === "" && (
-          <p className="tz-nota">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            {"Falta la medici\u00F3n en el pie. Sin ella no se puede evaluar la diferencia preductal-postductal y el tamizaje queda incompleto."}
-          </p>
-        )}
-
-      </section>
-
-      <section className="tz-card tz-card-3">
-        <div className="tz-seccion-cab">
-          <span className="tz-paso">3</span>
-          <div>
-            <h2 className="tz-seccion">{"S\u00EDntomas presentes"}</h2>
-            <p className="tz-seccion-desc">{"Cualquier s\u00EDntoma en rojo excluye del tamizaje"}</p>
-          </div>
-        </div>
-        <label className={`tz-asintomatico ${asintomatico ? "tz-asintomatico-on" : ""}`}>
-          <input type="checkbox" checked={asintomatico} onChange={marcarAsintomatico} />
-          <span>
-            <span className="tz-asintomatico-titulo">{"Asintom\u00E1tico"}</span>
-            <span className="tz-asintomatico-desc">
-              {"Se revis\u00F3 y no presenta ninguno de los signos de abajo"}
-            </span>
-          </span>
-        </label>
-
-        {/* Aviso si no se marco nada: una pantalla en blanco puede significar
-            "no hay sintomas" o "todavia no revise", y no son lo mismo. */}
-        {!asintomatico && f.sintomas.length === 0 && !f.oxigenoSuplementario && (
-          <p className="tz-nota">
-            {"Marca los s\u00EDntomas presentes o confirma que est\u00E1 asintom\u00E1tico."}
-          </p>
-        )}
-
-        <div className="tz-checks">
-          {[...SINTOMAS_ALARMA, ...SINTOMAS_CONTEXTO].map((id) => {
-            const marcado = f.sintomas.includes(id);
-            const esAlarma = SINTOMAS_ALARMA.includes(id);
-            const info = INFO_SINTOMAS[id];
-            return (
-              <label
-                key={id}
-                className={`tz-check ${marcado ? (esAlarma ? "tz-check-alarma" : "tz-check-ctx") : ""}`}
+            <div className="tz-sidebar-menu">
+              <button
+                type="button"
+                className={`tz-sidebar-btn ${seccionActiva === "sec-ubicacion" ? "tz-sidebar-btn-activo" : ""}`}
+                onClick={() => irASeccion("sec-ubicacion")}
               >
-                <input
-                  type="checkbox"
-                  checked={marcado}
-                  onChange={() => alternarSintoma(id)}
-                />
-                <span>{ETIQUETAS_SINTOMAS[id]}</span>
-                {info && (
-                  <AyudaSintoma
-                    titulo={info.titulo}
-                    imagen={info.imagen}
-                    alt={info.alt}
-                    descripcion={info.descripcion}
+                <span className="tz-sidebar-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                </span>
+                <div className="tz-sidebar-info">
+                  <span className="tz-sidebar-nombre">Ubicación</span>
+                  <span className="tz-sidebar-detalle">{ubicacion?.nombre ? ubicacion.nombre.slice(0, 15) + "…" : "Establecimiento"}</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className={`tz-sidebar-btn ${seccionActiva === "sec-paciente" ? "tz-sidebar-btn-activo" : ""}`}
+                onClick={() => irASeccion("sec-paciente")}
+              >
+                <span className="tz-sidebar-num">1</span>
+                <div className="tz-sidebar-info">
+                  <span className="tz-sidebar-nombre">Identificación</span>
+                  <span className="tz-sidebar-detalle">{f.apellidoMaterno ? "Ingresado" : "N° HC y Madre"}</span>
+                </div>
+                {f.apellidoMaterno && <span className="tz-sidebar-check">✓</span>}
+              </button>
+
+              <button
+                type="button"
+                className={`tz-sidebar-btn ${seccionActiva === "sec-vitales" ? "tz-sidebar-btn-activo" : ""}`}
+                onClick={() => irASeccion("sec-vitales")}
+              >
+                <span className="tz-sidebar-num">2</span>
+                <div className="tz-sidebar-info">
+                  <span className="tz-sidebar-nombre">Signos Vitales</span>
+                  <span className="tz-sidebar-detalle">SpO₂ pre/post</span>
+                </div>
+                {f.spo2Preductal && f.spo2Postductal && <span className="tz-sidebar-check">✓</span>}
+              </button>
+
+              <button
+                type="button"
+                className={`tz-sidebar-btn ${seccionActiva === "sec-sintomas" ? "tz-sidebar-btn-activo" : ""}`}
+                onClick={() => irASeccion("sec-sintomas")}
+              >
+                <span className="tz-sidebar-num">3</span>
+                <div className="tz-sidebar-info">
+                  <span className="tz-sidebar-nombre">Síntomas</span>
+                  <span className="tz-sidebar-detalle">{asintomatico ? "Asintomático" : f.sintomas.length ? `${f.sintomas.length} seleccionados` : "Revisión"}</span>
+                </div>
+                {(asintomatico || f.sintomas.length > 0) && <span className="tz-sidebar-check">✓</span>}
+              </button>
+
+              <button
+                type="button"
+                className={`tz-sidebar-btn ${seccionActiva === "sec-contexto" ? "tz-sidebar-btn-activo" : ""}`}
+                onClick={() => irASeccion("sec-contexto")}
+              >
+                <span className="tz-sidebar-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+                </span>
+                <div className="tz-sidebar-info">
+                  <span className="tz-sidebar-nombre">Contexto</span>
+                  <span className="tz-sidebar-detalle">O₂ y diagnóstico</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className={`tz-sidebar-btn tz-sidebar-btn-eval ${seccionActiva === "sec-resultado" ? "tz-sidebar-btn-activo" : ""}`}
+                onClick={() => {
+                  if (!salida?.ok) setEnviado(true);
+                  irASeccion("sec-resultado");
+                }}
+              >
+                <span className="tz-sidebar-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+                </span>
+                <div className="tz-sidebar-info">
+                  <span className="tz-sidebar-nombre">Resultado</span>
+                  <span className="tz-sidebar-detalle">{salida?.ok ? salida.resultado.toUpperCase() : "Evaluar caso"}</span>
+                </div>
+                {salida?.ok && (
+                  <span
+                    className="tz-sidebar-dot"
+                    style={{ background: salida.resultado === "verde" ? "#22c55e" : salida.resultado === "amarillo" ? "#eab308" : "#ef4444" }}
                   />
                 )}
+              </button>
+
+              {mostrarCalculadoras && (
+                <button
+                  type="button"
+                  className={`tz-sidebar-btn ${seccionActiva === "sec-calculadoras" ? "tz-sidebar-btn-activo" : ""}`}
+                  onClick={() => irASeccion("sec-calculadoras")}
+                >
+                  <span className="tz-sidebar-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="16" y1="14" x2="16" y2="18" /><path d="M8 10h.01" /><path d="M12 10h.01" /><path d="M16 10h.01" /><path d="M8 14h.01" /><path d="M12 14h.01" /><path d="M8 18h.01" /><path d="M12 18h.01" /></svg>
+                  </span>
+                  <div className="tz-sidebar-info">
+                    <span className="tz-sidebar-nombre">Calculadoras</span>
+                    <span className="tz-sidebar-detalle">PGE1 / Hidratación</span>
+                  </div>
+                </button>
+              )}
+
+              {mostrarDerivacion && (
+                <button
+                  type="button"
+                  className={`tz-sidebar-btn ${seccionActiva === "sec-derivacion" ? "tz-sidebar-btn-activo" : ""}`}
+                  onClick={() => irASeccion("sec-derivacion")}
+                >
+                  <span className="tz-sidebar-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18" /><path d="M5 21V7l7-4 7 4v14" /><path d="M9 21v-4h6v4" /><path d="M10 10h1" /><path d="M14 10h-1" /></svg>
+                  </span>
+                  <div className="tz-sidebar-info">
+                    <span className="tz-sidebar-nombre">Derivación</span>
+                    <span className="tz-sidebar-detalle">Hospitales Nivel II+</span>
+                  </div>
+                </button>
+              )}
+            </div>
+          </div>
+        </aside>
+
+        {/* === COLUMNA PRINCIPAL DE FORMULARIO === */}
+        <div className="tz-main-col">
+          <div id="sec-ubicacion">
+            <PanelUbicacion ubicacion={ubicacion} onCambio={setUbicacion} />
+          </div>
+
+          {banda && (
+            <div className="tz-banda-suelta">
+              <span className="tz-banda-icono">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>
+              </span>
+              {"Banda "}<strong>{banda.id}</strong>{" \u00B7 corte cr\u00EDtico "}
+              <strong>&lt;{banda.spo2Critico}%</strong>{" \u00B7 pasa con "}
+              <strong>&ge;{banda.spo2Pasa}%</strong>
+              {banda.estado === "provisional" && " \u00B7 umbrales provisionales"}
+            </div>
+          )}
+
+          {/* ---------------- 1. Identificacion ---------------- */}
+          <section id="sec-paciente" className="tz-card tz-card-1">
+            <div className="tz-seccion-cab">
+              <span className="tz-paso">1</span>
+              <div>
+                <h2 className="tz-seccion">{"Identificaci\u00F3n del paciente"}</h2>
+                <p className="tz-seccion-desc">{"Solo lo necesario para identificar el caso"}</p>
+              </div>
+            </div>
+
+            <div className="tz-fila">
+              <Campo etiqueta={"N° Historia clínica"}>
+                <input
+                  className="tz-input tz-mono"
+                  value={f.historiaClinica}
+                  onChange={(e) => set("historiaClinica")(e.target.value.replace(/[^a-zA-Z0-9\-_/]/g, "").toUpperCase())}
+                  placeholder="RN-2024-0000"
+                />
+              </Campo>
+              <Campo etiqueta={"Apellido y nombre de la madre"} error={errores.apellidoMaterno}>
+                <input
+                  className={`tz-input ${errores.apellidoMaterno ? "tz-error" : ""}`}
+                  value={f.apellidoMaterno}
+                  onChange={(e) => set("apellidoMaterno")(soloLetras(e.target.value))}
+                  placeholder={"García Mendoza, Ana"}
+                  autoComplete="off"
+                />
+              </Campo>
+            </div>
+          </section>
+
+          {/* ---------------- 2. Signos vitales ---------------- */}
+          <section id="sec-vitales" className="tz-card tz-card-2">
+            <div className="tz-seccion-cab">
+              <span className="tz-paso">2</span>
+              <div>
+                <h2 className="tz-seccion">Signos vitales</h2>
+                <p className="tz-seccion-desc">{"La saturación determina el resultado"}</p>
+              </div>
+              <AyudaSensores />
+            </div>
+
+            <div className="tz-fila">
+              <Campo
+                etiqueta={`SpO₂ preductal (%)`}
+                error={errores.spo2Preductal}
+              >
+                <input
+                  className={`tz-input tz-mono ${errores.spo2Preductal || avisoCritico ? "tz-error" : ""}`}
+                  type="text"
+                  inputMode="numeric"
+                  value={f.spo2Preductal}
+                  onChange={(e) => set("spo2Preductal")(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                  placeholder="98"
+                />
+              </Campo>
+              <Campo
+                etiqueta={`SpO₂ postductal (%)`}
+                error={errores.spo2Postductal}
+              >
+                <input
+                  className={`tz-input tz-mono ${errores.spo2Postductal ? "tz-error" : ""}`}
+                  type="text"
+                  inputMode="numeric"
+                  value={f.spo2Postductal}
+                  onChange={(e) => set("spo2Postductal")(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                  placeholder="97"
+                />
+              </Campo>
+            </div>
+
+            {avisoCritico && (
+              <p className="tz-alerta tz-alerta-glow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                {`SpO₂ por debajo del umbral crítico de la banda ${banda.id} (<${banda.spo2Critico}%)`}
+              </p>
+            )}
+
+            <Campo
+              etiqueta="Horas de vida"
+              error={errores.horasDeVida}
+              ayuda={"En horas, no en días"}
+            >
+              <input
+                className={`tz-input tz-mono ${errores.horasDeVida ? "tz-error" : ""}`}
+                type="text"
+                inputMode="numeric"
+                value={f.horasDeVida}
+                onChange={(e) => set("horasDeVida")(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="30"
+              />
+            </Campo>
+
+            {f.spo2Preductal !== "" && f.spo2Postductal === "" && (
+              <p className="tz-nota">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                {"Falta la medicion en el pie. Sin ella no se puede evaluar la diferencia preductal-postductal y el tamizaje queda incompleto."}
+              </p>
+            )}
+          </section>
+
+          {/* ---------------- 3. Sintomas ---------------- */}
+          <section id="sec-sintomas" className="tz-card tz-card-3">
+            <div className="tz-seccion-cab">
+              <span className="tz-paso">3</span>
+              <div>
+                <h2 className="tz-seccion">{"S\u00EDntomas presentes"}</h2>
+                <p className="tz-seccion-desc">{"Cualquier s\u00EDntoma en rojo excluye del tamizaje"}</p>
+              </div>
+            </div>
+            <label className={`tz-asintomatico ${asintomatico ? "tz-asintomatico-on" : ""}`}>
+              <input type="checkbox" checked={asintomatico} onChange={marcarAsintomatico} />
+              <span>
+                <span className="tz-asintomatico-titulo">{"Asintom\u00E1tico"}</span>
+                <span className="tz-asintomatico-desc">
+                  {"Se revis\u00F3 y no presenta ninguno de los signos de abajo"}
+                </span>
+              </span>
+            </label>
+
+            {errorSintomas && (
+              <p className="tz-nota tz-nota-aviso">
+                {"Marca los s\u00EDntomas presentes o confirma que est\u00E1 asintom\u00E1tico."}
+              </p>
+            )}
+
+            <div className="tz-checks">
+              {SINTOMAS_ALARMA.map((id) => {
+                const info = INFO_SINTOMAS[id];
+                return (
+                  <label key={id} className={`tz-check ${f.sintomas.includes(id) ? "tz-check-alarma" : ""}`}>
+                    <input
+                      type="checkbox"
+                      checked={f.sintomas.includes(id)}
+                      onChange={() => alternarSintoma(id)}
+                    />
+                    <span>{ETIQUETAS_SINTOMAS[id]}</span>
+                    {info && (
+                      <AyudaSintoma
+                        titulo={info.titulo}
+                        imagen={info.imagen}
+                        alt={info.alt}
+                        descripcion={info.descripcion}
+                      />
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* ---------------- 4. Contexto Clinico ---------------- */}
+          <section id="sec-contexto" className="tz-card tz-card-4">
+            <div className="tz-seccion-cab">
+              <span className="tz-paso">4</span>
+              <div>
+                <h2 className="tz-seccion">Contexto clínico</h2>
+                <p className="tz-seccion-desc">Factores que modifican la conducta y cálculo</p>
+              </div>
+            </div>
+
+            <div className="tz-checks">
+              <label className={`tz-check ${f.oxigenoSuplementario ? "tz-check-alarma" : ""}`}>
+                <input
+                  type="checkbox"
+                  checked={f.oxigenoSuplementario}
+                  onChange={() => {
+                    setAsintomatico(false);
+                    set("oxigenoSuplementario")(!f.oxigenoSuplementario);
+                  }}
+                />
+                <span>{"Ox\u00EDgeno suplementario"}</span>
+                <AyudaSintoma
+                  titulo={INFO_SINTOMAS.oxigeno_suplementario.titulo}
+                  imagen={INFO_SINTOMAS.oxigeno_suplementario.imagen}
+                  alt={INFO_SINTOMAS.oxigeno_suplementario.alt}
+                  descripcion={INFO_SINTOMAS.oxigeno_suplementario.descripcion}
+                />
               </label>
-            );
-          })}
-        </div>
-        <div className="tz-checks">
-          <label className={`tz-check ${f.oxigenoSuplementario ? "tz-check-alarma" : ""}`}>
-            <input
-              type="checkbox"
-              checked={f.oxigenoSuplementario}
-              onChange={() => {
-                setAsintomatico(false);
-                set("oxigenoSuplementario")(!f.oxigenoSuplementario);
-              }}
-            />
-            <span>{"Ox\u00EDgeno suplementario"}</span>
-            <AyudaSintoma
-              titulo={INFO_SINTOMAS.oxigeno_suplementario.titulo}
-              imagen={INFO_SINTOMAS.oxigeno_suplementario.imagen}
-              alt={INFO_SINTOMAS.oxigeno_suplementario.alt}
-              descripcion={INFO_SINTOMAS.oxigeno_suplementario.descripcion}
-            />
-          </label>
-          <label className={`tz-check ${f.diagnosticoPrenatalCC ? "tz-check-alarma" : ""}`}>
-            <input
-              type="checkbox"
-              checked={f.diagnosticoPrenatalCC}
-              onChange={() => set("diagnosticoPrenatalCC")(!f.diagnosticoPrenatalCC)}
-            />
-            <span>{"Diagn\u00F3stico prenatal de cardiopat\u00EDa"}</span>
-            <AyudaSintoma
-              titulo={INFO_SINTOMAS.diagnostico_prenatal.titulo}
-              imagen={INFO_SINTOMAS.diagnostico_prenatal.imagen}
-              alt={INFO_SINTOMAS.diagnostico_prenatal.alt}
-              descripcion={INFO_SINTOMAS.diagnostico_prenatal.descripcion}
-            />
-          </label>
-        </div>
-      </section>
+              <label className={`tz-check ${f.diagnosticoPrenatalCC ? "tz-check-alarma" : ""}`}>
+                <input
+                  type="checkbox"
+                  checked={f.diagnosticoPrenatalCC}
+                  onChange={() => set("diagnosticoPrenatalCC")(!f.diagnosticoPrenatalCC)}
+                />
+                <span>{"Diagn\u00F3stico prenatal de cardiopat\u00EDa"}</span>
+                <AyudaSintoma
+                  titulo={INFO_SINTOMAS.diagnostico_prenatal.titulo}
+                  imagen={INFO_SINTOMAS.diagnostico_prenatal.imagen}
+                  alt={INFO_SINTOMAS.diagnostico_prenatal.alt}
+                  descripcion={INFO_SINTOMAS.diagnostico_prenatal.descripcion}
+                />
+              </label>
+            </div>
+          </section>
 
-      {/* ---------------- Acciones ---------------- */}
-      <div className="tz-acciones">
-        <button type="button" className="tz-boton tz-boton-pri" onClick={() => setEnviado(true)}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          {`Evaluar tamizaje${f.ronda > 1 ? ` (ronda ${f.ronda})` : ""}`}
-        </button>
-        <button type="button" className="tz-boton tz-boton-sec" onClick={reiniciar}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-          Limpiar
-        </button>
+          {/* ---------------- Acciones ---------------- */}
+          <div id="sec-acciones" className="tz-acciones">
+            <button type="button" className="tz-boton tz-boton-pri" onClick={() => setEnviado(true)}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+              {`Evaluar tamizaje${f.ronda > 1 ? ` (ronda ${f.ronda})` : ""}`}
+            </button>
+            <button type="button" className="tz-boton tz-boton-sec" onClick={reiniciar}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg>
+              Limpiar
+            </button>
+          </div>
+
+          {/* ---------------- Resultado ---------------- */}
+          <div id="sec-resultado">
+            {salida?.ok && (
+              <PanelResultado
+                salida={salida}
+                onSiguienteRonda={siguienteRonda}
+                onGuardarPendiente={guardarPendiente}
+                guardado={guardado}
+              />
+            )}
+          </div>
+
+          {/* Con tamizaje no superado o recien nacido sintomatico: calculadoras */}
+          <div id="sec-calculadoras">
+            {mostrarCalculadoras && (
+              <>
+                <CalculadoraPGE1 pesoInicial={num(f.pesoKg)} />
+                <CalculadoraHidratacion
+                  pesoInicial={num(f.pesoKg)}
+                  horasInicial={num(f.horasDeVida)}
+                  edadGestacionalInicial={ubicacion ? f.edadGestacionalSem : null}
+                />
+              </>
+            )}
+          </div>
+
+          {/* Hospitales de derivación locales para Amarillos y Rojos */}
+          <div id="sec-derivacion">
+            {mostrarDerivacion && (
+              <PanelDerivacionHospitales
+                ubicacion={ubicacion}
+                onHospitalSeleccionado={(h) => {
+                  console.log("Hospital seleccionado:", h?.nombre);
+                }}
+              />
+            )}
+          </div>
+
+          {salida && !salida.ok && (
+            <section className="tz-card tz-res tz-res-error tz-animate-shake">
+              <h2 className="tz-seccion">Revisa los datos</h2>
+              <ul className="tz-lista">
+                {Object.entries(salida.errores).map(([campo, mensaje]) => (
+                  <li key={campo}>
+                    <strong>{campo}</strong>: {mensaje}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
       </div>
-
-      {/* ---------------- Resultado ---------------- */}
-      {salida?.ok && (
-        <PanelResultado
-          salida={salida}
-          onSiguienteRonda={siguienteRonda}
-          onGuardarPendiente={guardarPendiente}
-          guardado={guardado}
-        />
-      )}
-
-      {/* La derivacion solo aparece cuando hace falta: tamizaje no superado, o
-          recien nacido sintomatico que necesita evaluacion inmediata. */}
-      {/* Con tamizaje no superado o recien nacido sintomatico: las dos
-          calculadoras que hacen falta mientras se organiza el traslado. */}
-      {salida?.ok &&
-        (salida.resultado === Resultado.POSITIVO ||
-          salida.resultado === Resultado.NO_ELEGIBLE) && (
-          <>
-            <CalculadoraPGE1 pesoInicial={num(f.pesoKg)} />
-            <CalculadoraHidratacion
-              pesoInicial={num(f.pesoKg)}
-              horasInicial={num(f.horasDeVida)}
-              edadGestacionalInicial={ubicacion ? f.edadGestacionalSem : null}
-            />
-          </>
-        )}
-
-      {/* Hospitales de derivación locales para Amarillos y Rojos */}
-      {salida?.ok &&
-        (salida.resultado === Resultado.POSITIVO ||
-         salida.resultado === Resultado.REPETIR ||
-         salida.resultado === Resultado.NO_ELEGIBLE) && (
-          <PanelDerivacionHospitales 
-            ubicacion={ubicacion} 
-            onHospitalSeleccionado={(h) => {
-              console.log("Hospital seleccionado:", h?.nombre);
-            }} 
-          />
-        )}
-
-      {salida && !salida.ok && (
-        <section className="tz-card tz-res tz-res-error tz-animate-shake">
-          <h2 className="tz-seccion">Revisa los datos</h2>
-          <ul className="tz-lista">
-            {Object.entries(salida.errores).map(([campo, mensaje]) => (
-              <li key={campo}>
-                <strong>{campo}</strong>: {mensaje}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }
@@ -605,7 +775,7 @@ function PanelResultado({ salida, onSiguienteRonda, onGuardarPendiente, guardado
       {salida.proximaRonda && (
         <div className="tz-recordatorio">
           <div className="tz-recordatorio-cab">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
             <span className="tz-recordatorio-tiempo tz-mono">{salida.minutosEspera} min</span>
           </div>
           <p className="tz-recordatorio-texto">
@@ -651,13 +821,223 @@ function PanelResultado({ salida, onSiguienteRonda, onGuardarPendiente, guardado
 // ---------------------------------------------------------------------------
 
 const CSS = `
-/* ========== FORMULARIO TAMIZAJE ========== */
+/* ========== FORMULARIO TAMIZAJE Y SUBMENÚ LATERAL ========== */
 .tz {
-  max-width: 780px;
+  max-width: 1060px;
   margin: 0 auto;
   padding: 0 16px;
   color: var(--tinta);
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Layout Grid con Navegación Lateral */
+.tz-layout-grid {
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.tz-sidebar-nav {
+  width: 210px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 76px;
+  z-index: 20;
+}
+
+.tz-sidebar-sticky {
+  background: var(--carta, rgba(255, 255, 255, 0.9));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--linea, #e2e8f0);
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.tz-sidebar-cabecera {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--linea, #e2e8f0);
+}
+
+.tz-sidebar-titulo {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--acento, #4338ca);
+  text-transform: uppercase;
+}
+
+.tz-sidebar-sub {
+  font-size: 11.5px;
+  color: var(--suave, #64748b);
+  font-weight: 500;
+}
+
+.tz-sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tz-sidebar-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.16s ease;
+  color: var(--tinta, #0f172a);
+}
+
+.tz-sidebar-btn:hover {
+  background: var(--campo, rgba(0, 0, 0, 0.03));
+  border-color: var(--linea, #e2e8f0);
+  transform: translateX(2px);
+}
+
+.tz-sidebar-btn-activo {
+  background: var(--acento-suave, #eef2ff) !important;
+  border-color: var(--acento-linea, #c7d2fe) !important;
+  color: var(--acento, #4338ca) !important;
+  box-shadow: 0 2px 8px rgba(67, 56, 202, 0.1);
+  transform: translateX(3px);
+}
+
+.tz-sidebar-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--acento-suave, #eef2ff);
+  color: var(--acento, #4338ca);
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tz-sidebar-btn-activo .tz-sidebar-num {
+  background: var(--acento, #4338ca);
+  color: #fff;
+}
+
+.tz-sidebar-icon {
+  font-size: 14px;
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tz-sidebar-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.tz-sidebar-nombre {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tz-sidebar-detalle {
+  font-size: 10px;
+  color: var(--suave, #64748b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tz-sidebar-check {
+  font-size: 10px;
+  font-weight: 900;
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.12);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tz-sidebar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tz-main-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Responsivo para móviles */
+@media (max-width: 880px) {
+  .tz-layout-grid {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .tz-sidebar-nav {
+    width: 100%;
+    position: sticky;
+    top: 64px;
+    z-index: 30;
+  }
+
+  .tz-sidebar-sticky {
+    padding: 7px 10px;
+    border-radius: 10px;
+  }
+
+  .tz-sidebar-cabecera {
+    display: none;
+  }
+
+  .tz-sidebar-menu {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .tz-sidebar-menu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tz-sidebar-btn {
+    width: auto;
+    flex-shrink: 0;
+    padding: 5px 10px;
+  }
+
+  .tz-sidebar-detalle {
+    display: none;
+  }
 }
 
 .tz *, .tz *::before, .tz *::after { box-sizing: border-box; }
