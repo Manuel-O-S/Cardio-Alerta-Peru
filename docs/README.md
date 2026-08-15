@@ -19,7 +19,10 @@ Documentación del proyecto.
 - `Anexo2_Uso_IA_Generativa.md` — declaración de uso de IA generativa exigida por
   las bases. **Borrador: cada integrante debe completar su sección.**
 - `anexo1_entrega_final.docx` — formato de entrega final exigido por las bases
-  (Said, tarea W08). Se agrega más adelante.
+  (Said, tarea W08). **Redactado.** Quedan pendientes los campos marcados en
+  rojo: nombre del equipo, URL del repositorio, enlace del pitch y firma del
+  representante.
 - `anexo2_declaracion_ia.docx` — declaración de uso de IA generativa (Said,
-  tarea W11). Se agrega más adelante, con el registro de usos que se va llevando
-  desde ahora.
+  tarea W11). **Redactado** a partir de `Anexo2_Uso_IA_Generativa.md`. Quedan
+  pendientes los campos marcados en rojo: modelo y fechas de uso, responsables
+  de revisión por área, verificación clínica de umbrales y firmas.
