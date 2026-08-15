@@ -151,7 +151,7 @@ export default function PanelDerivacionHospitales({
       
       <div className="deriv-cab-fila">
         <h3 className="deriv-titulo">
-          {seleccionado ? "Hospital Seleccionado para Derivación" : "Hospitales disponibles para derivación"}
+          {seleccionado ? "Hospital Nivel II Seleccionado para Derivación" : "Hospitales Nivel II para derivación (Red de Referencia)"}
         </h3>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           {estaOffline && (

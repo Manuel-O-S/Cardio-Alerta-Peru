@@ -25,6 +25,11 @@ export default function TarjetaHospital({ hospital, seleccionado, onSeleccionar 
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 3 }}>
             <h4 className="hosp-nombre">{nombre}</h4>
+            {hospital.nivel && (
+              <span className="hosp-nivel-badge">
+                {hospital.nivel}
+              </span>
+            )}
             {hospital.iafas && (
               <span className={`hosp-iafas-badge hosp-iafas-${hospital.iafas.toLowerCase().includes("essalud") ? "essalud" : hospital.iafas.toLowerCase().includes("privado") ? "privado" : "minsa"}`}>
                 {hospital.iafas}
@@ -188,6 +193,18 @@ const CSS_HOSP = `
   background: rgba(22, 163, 74, 0.1);
   padding: 2px 8px;
   border-radius: 20px;
+}
+
+.hosp-nivel-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(14, 165, 233, 0.1);
+  color: #0284c7;
+  border: 1px solid rgba(14, 165, 233, 0.25);
 }
 
 .hosp-iafas-badge {
