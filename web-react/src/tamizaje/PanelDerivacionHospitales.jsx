@@ -11,30 +11,25 @@ export default function PanelDerivacionHospitales({ ubicacionId, onHospitalSelec
   
   const hospitales = hospitalesDeCiudad(ubicacionId);
 
-  if (hospitales.length === 0) {
-    return (
-      <div className="deriv-panel">
-        <style>{CSS_DERIVACION}</style>
-        <p className="deriv-sin-hospitales">
-          No hay hospitales de derivaci\u00F3n registrados para esta ciudad.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="deriv-panel">
       <style>{CSS_DERIVACION}</style>
-      <h3 className="deriv-titulo">Hospitales disponibles para derivaci\u00F3n</h3>
-      <div className="deriv-lista">
-        {hospitales.map((h) => (
-          <TarjetaHospital
-            key={h.id}
-            hospital={h}
-            onSeleccionar={() => onHospitalSeleccionado?.(h)}
-          />
-        ))}
-      </div>
+      <h3 className="deriv-titulo">Hospitales disponibles para derivación</h3>
+      {hospitales.length === 0 ? (
+        <p className="deriv-sin-hospitales">
+          No hay hospitales de derivación registrados para esta ciudad.
+        </p>
+      ) : (
+        <div className="deriv-lista">
+          {hospitales.map((h) => (
+            <TarjetaHospital
+              key={h.id}
+              hospital={h}
+              onSeleccionar={() => onHospitalSeleccionado?.(h)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

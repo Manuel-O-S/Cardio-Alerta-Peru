@@ -52,7 +52,7 @@ export default function HistorialClinico() {
     <div style={{ padding: "30px", maxWidth: "800px", margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
         <div>
-          <h2 style={{ color: "var(--marino)", margin: 0 }}>Historial Cl\u00EDnico</h2>
+          <h2 style={{ color: "var(--marino)", margin: 0 }}>Historial Clínico</h2>
           <p style={{ color: "var(--suave)", margin: "4px 0 0 0" }}>Registro local de tamizajes realizados.</p>
         </div>
         <button 
@@ -86,7 +86,7 @@ export default function HistorialClinico() {
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {historial.length === 0 ? (
           <div style={{ textAlign: "center", padding: "40px", background: "var(--campo)", borderRadius: "12px", color: "var(--suave)" }}>
-            A\u00FAn no hay tamizajes registrados en este dispositivo.
+            Aún no hay tamizajes registrados en este dispositivo.
           </div>
         ) : (
           [...historial].reverse().map((h) => (
@@ -102,7 +102,7 @@ export default function HistorialClinico() {
                 </div>
               </div>
               <div style={{ fontSize: "12px", fontWeight: 600, padding: "4px 10px", borderRadius: "20px", background: h.sincronizado ? "rgba(34, 197, 94, 0.1)" : "var(--campo)", color: h.sincronizado ? "#166534" : "var(--suave)" }}>
-                {h.sincronizado ? "\u2713 Sincronizado" : "\u23F3 Pendiente"}
+                {h.sincronizado ? "✓ Sincronizado" : "⏳ Pendiente"}
               </div>
             </div>
           ))

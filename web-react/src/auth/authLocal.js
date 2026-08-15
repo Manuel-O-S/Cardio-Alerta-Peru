@@ -26,14 +26,15 @@ export async function iniciarSesion(dni, contrasena) {
   }
 
   const email = `${dni}${DOMAIN}`;
-  
+
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password: contrasena,
   });
 
   if (error) {
-    return { ok: false, error: "Credenciales incorrectas o usuario no autorizado." };
+    console.error("Error detallado de Supabase Auth:", error);
+    return { ok: false, error: error.message || "Credenciales incorrectas o usuario no autorizado." };
   }
 
   // Registrar el ingreso en la base de datos
@@ -70,10 +71,10 @@ export async function cerrarSesion() {
 export async function obtenerSesionAsync() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return null;
-  
+
   const user = session.user;
   const dni = user.email ? user.email.replace(DOMAIN, "") : "";
-  
+
   const { data: perfilData, error } = await supabase
     .from("perfiles")
     .select("rol, nombre")
@@ -97,13 +98,13 @@ export function onAuthStateChange(callback) {
     if (session) {
       const user = session.user;
       const dni = user.email ? user.email.replace(DOMAIN, "") : "";
-      
+
       const { data: perfilData, error } = await supabase
         .from("perfiles")
         .select("rol, nombre")
         .eq("id", user.id)
         .single();
-        
+
       if (error || !perfilData) {
         await supabase.auth.signOut();
         callback(null);
