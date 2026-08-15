@@ -69,6 +69,9 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
   const [f, setF] = useState(ESTADO_INICIAL);
   const [enviado, setEnviado] = useState(false);
   const [seccionActiva, setSeccionActiva] = useState("sec-paciente");
+  const [guardado, setGuardado] = useState(false);
+  const [retomado, setRetomado] = useState(null);
+  const [asintomatico, setAsintomatico] = useState(false);
 
   const irASeccion = (id) => {
     const el = document.getElementById(id);
@@ -183,14 +186,6 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
       registrarEnHistorial(identificador, color);
     }
   }, [salida]);
-
-  const [guardado, setGuardado] = useState(false);
-  const [retomado, setRetomado] = useState(null);
-  // "Asintomatico" no es un sintoma: es la confirmacion de que se reviso y no
-  // hay ninguno. No entra en la lista que recibe el motor, que ya interpreta
-  // la lista vacia como ausencia. Sirve para distinguir "revise y no hay nada"
-  // de "no llegue a revisar", que en una pantalla desmarcada se ven igual.
-  const [asintomatico, setAsintomatico] = useState(false);
 
   /**
    * Retomar un caso vencido. Copia lo que no cambia entre rondas y deja en
@@ -524,7 +519,7 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
               </span>
             </label>
 
-            {errorSintomas && (
+            {!asintomatico && f.sintomas.length === 0 && !f.oxigenoSuplementario && (
               <p className="tz-nota tz-nota-aviso">
                 {"Marca los s\u00EDntomas presentes o confirma que est\u00E1 asintom\u00E1tico."}
               </p>
