@@ -5,6 +5,8 @@ import AyudaSensores from "./AyudaSensores.jsx";
 import AyudaSintoma from "./AyudaSintoma.jsx";
 import CalculadoraPGE1 from "./CalculadoraPGE1.jsx";
 import CalculadoraHidratacion from "./CalculadoraHidratacion.jsx";
+import PanelDerivacionHospitales from "./PanelDerivacionHospitales.jsx";
+import { registrarEnHistorial } from "./historialClinico.js";
 import { INFO_SINTOMAS } from "./infoSintomas.js";
 import { datosParaRetomar, eliminarCaso, guardarCaso } from "./casosPendientes.js";
 import { leerUbicacion } from "./ubicacion.js";
@@ -133,6 +135,18 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
     setGuardado(false);
     setAsintomatico(false);
   };
+
+  // Función para guardar automáticamente en el historial local al haber un resultado nuevo
+  useEffect(() => {
+    if (salida && salida.ok) {
+      let color = "verde";
+      if (salida.resultado === Resultado.REPETIR) color = "amarillo";
+      if (salida.resultado === Resultado.POSITIVO || salida.resultado === Resultado.NO_ELEGIBLE) color = "rojo";
+      
+      const paciente = `Recién nacido - ${f.horasDeVida}h de vida`; // Nombre genérico ya que no piden DNI paciente aún
+      registrarEnHistorial(paciente, color);
+    }
+  }, [salida]);
 
   const [guardado, setGuardado] = useState(false);
   const [retomado, setRetomado] = useState(null);
@@ -456,6 +470,20 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
         (salida.resultado === Resultado.POSITIVO ||
           salida.resultado === Resultado.NO_ELEGIBLE) && (
           <PanelDerivacion latInicial={ubicacion.lat} lonInicial={ubicacion.lon} />
+        )}
+
+      {/* Hospitales de derivación locales para Amarillos y Rojos */}
+      {salida?.ok &&
+        (salida.resultado === Resultado.POSITIVO ||
+         salida.resultado === Resultado.REPETIR ||
+         salida.resultado === Resultado.NO_ELEGIBLE) && (
+          <PanelDerivacionHospitales 
+            ubicacionId={ubicacion?.id} 
+            onHospitalSeleccionado={(h) => {
+              // Por ahora solo es visual o para futuras integraciones.
+              console.log("Hospital seleccionado:", h.nombre);
+            }} 
+          />
         )}
 
       {salida && !salida.ok && (

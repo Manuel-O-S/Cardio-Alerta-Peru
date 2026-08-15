@@ -5,11 +5,9 @@ import { iniciarSesion } from "./authLocal.js";
  * Pantalla de inicio de sesion.
  *
  * Props:
- * - onLogin(usuario): callback cuando el login es exitoso
- * - onIrRegistro():   navega a la pantalla de registro
- * - onIrRecuperar():  navega a la pantalla de recuperar contrasena
+ * - onLogin(usuario): callback cuando inicia sesion con exito
  */
-export default function PantallaLogin({ onLogin, onIrRegistro, onIrRecuperar }) {
+export default function PantallaLogin({ onLogin }) {
   const [dni, setDni] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [verContrasena, setVerContrasena] = useState(false);
@@ -121,18 +119,7 @@ export default function PantallaLogin({ onLogin, onIrRegistro, onIrRecuperar }) 
           </button>
         </form>
 
-        <div className="auth-links">
-          <button type="button" className="auth-link" onClick={onIrRecuperar}>
-            ¿Olvidaste tu contraseña?
-          </button>
-          <div className="auth-sep" />
-          <p className="auth-link-text">
-            ¿No tienes cuenta? 
-            <button type="button" className="auth-link auth-link-bold" onClick={onIrRegistro}>
-              Regístrate
-            </button>
-          </p>
-        </div>
+
       </div>
     </div>
   );

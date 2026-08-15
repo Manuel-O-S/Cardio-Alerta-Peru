@@ -1,189 +1,104 @@
+import { supabase } from "../supabaseClient.js";
+
 /**
- * Autenticacion local con localStorage.
- *
- * Todo se almacena en el navegador del equipo. No hay servidor ni red.
- * Las contrasenas se hashean con SHA-256 (Web Crypto API) para no
- * guardar texto plano, aunque el modelo de amenaza real es minimo
- * dado que es una app de tamizaje en un equipo hospitalario.
- *
- * Claves en localStorage:
- * - "cap_usuarios": array de usuarios registrados
- * - "cap_sesion":   objeto con la sesion activa (dni + nombre)
+ * Autenticacion con Supabase.
+ * Para mantener el uso de DNI en lugar de email en la interfaz,
+ * concatenamos el DNI con un dominio ficticio (@cardioalerta.pe) internamente.
  */
 
-const CLAVE_USUARIOS = "cap_usuarios";
-const CLAVE_SESION = "cap_sesion";
-
-const PREGUNTAS_SEGURIDAD = [
-  "¿Cuál es el nombre de su primera mascota?",
-  "¿En qué ciudad nació?",
-  "¿Cuál es el nombre de su madre?",
-  "¿Cuál fue su primer colegio?",
-  "¿Cuál es su comida favorita?",
-];
-
-export { PREGUNTAS_SEGURIDAD };
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Hashea un string con SHA-256 usando la Web Crypto API. */
-async function hashear(texto) {
-  const datos = new TextEncoder().encode(texto);
-  const buffer = await crypto.subtle.digest("SHA-256", datos);
-  return Array.from(new Uint8Array(buffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-function leerUsuarios() {
-  try {
-    return JSON.parse(localStorage.getItem(CLAVE_USUARIOS)) || [];
-  } catch {
-    return [];
-  }
-}
-
-function guardarUsuarios(usuarios) {
-  localStorage.setItem(CLAVE_USUARIOS, JSON.stringify(usuarios));
-}
+const DOMAIN = "@cardioalerta.pe";
 
 /** Valida que el DNI tenga exactamente 8 digitos numericos. */
 export function validarDni(dni) {
   return /^\d{8}$/.test(dni);
 }
 
-// ---------------------------------------------------------------------------
-// API publica
-// ---------------------------------------------------------------------------
-
 /**
- * Registra un nuevo usuario.
- * Retorna { ok: true } o { ok: false, error: "mensaje" }.
- */
-export async function registrarUsuario({
-  dni,
-  nombre,
-  contrasena,
-  confirmarContrasena,
-  preguntaSeguridad,
-  respuestaSeguridad,
-}) {
-  if (!validarDni(dni)) {
-    return { ok: false, error: "El DNI debe tener exactamente 8 dígitos numéricos." };
-  }
-  if (!nombre || nombre.trim().length < 2) {
-    return { ok: false, error: "Ingrese un nombre válido." };
-  }
-  if (!contrasena || contrasena.length < 4) {
-    return { ok: false, error: "La contraseña debe tener al menos 4 caracteres." };
-  }
-  if (contrasena !== confirmarContrasena) {
-    return { ok: false, error: "Las contraseñas no coinciden." };
-  }
-  if (!preguntaSeguridad) {
-    return { ok: false, error: "Seleccione una pregunta de seguridad." };
-  }
-  if (!respuestaSeguridad || respuestaSeguridad.trim().length < 2) {
-    return { ok: false, error: "Ingrese una respuesta de seguridad válida." };
-  }
-
-  const usuarios = leerUsuarios();
-  if (usuarios.find((u) => u.dni === dni)) {
-    return { ok: false, error: "Ya existe un usuario registrado con este DNI." };
-  }
-
-  const hash = await hashear(contrasena);
-  const hashRespuesta = await hashear(respuestaSeguridad.trim().toLowerCase());
-
-  usuarios.push({
-    dni,
-    nombre: nombre.trim(),
-    contrasenaHash: hash,
-    preguntaSeguridad,
-    respuestaSeguridadHash: hashRespuesta,
-    creadoEn: new Date().toISOString(),
-  });
-
-  guardarUsuarios(usuarios);
-  return { ok: true };
-}
-
-/**
- * Inicia sesion. Retorna { ok, error?, usuario? }.
+ * Inicia sesion usando Supabase.
+ * Retorna { ok, error?, usuario? }.
  */
 export async function iniciarSesion(dni, contrasena) {
   if (!dni || !contrasena) {
-    return { ok: false, error: "Ingrese DNI y contraseña." };
+    return { ok: false, error: "Ingrese DNI y contrase\u00F1a." };
+  }
+  if (!validarDni(dni)) {
+    return { ok: false, error: "El DNI debe tener exactamente 8 d\u00EDgitos num\u00E9ricos." };
   }
 
-  const usuarios = leerUsuarios();
-  const usuario = usuarios.find((u) => u.dni === dni);
-  if (!usuario) {
-    return { ok: false, error: "No se encontró un usuario con este DNI." };
+  const email = `${dni}${DOMAIN}`;
+  
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password: contrasena,
+  });
+
+  if (error) {
+    return { ok: false, error: "Credenciales incorrectas o usuario no autorizado." };
   }
 
-  const hash = await hashear(contrasena);
-  if (hash !== usuario.contrasenaHash) {
-    return { ok: false, error: "Contraseña incorrecta." };
+  // Registrar el ingreso en la base de datos
+  if (data.user) {
+    await supabase.from("registro_ingresos").insert({ doctor_id: data.user.id });
   }
 
-  const sesion = { dni: usuario.dni, nombre: usuario.nombre };
-  localStorage.setItem(CLAVE_SESION, JSON.stringify(sesion));
-  return { ok: true, usuario: sesion };
+  // Consultamos la tabla "perfiles" para obtener el rol exacto (admin o doctor)
+  const { data: perfilData } = await supabase
+    .from("perfiles")
+    .select("rol, nombre")
+    .eq("id", data.user.id)
+    .single();
+
+  const rol = perfilData?.rol || "doctor";
+  const nombre = perfilData?.nombre || "Doctor";
+  const sessionUser = { dni, nombre, rol, id: data.user?.id };
+
+  return { ok: true, usuario: sessionUser };
 }
 
 /** Cierra la sesion activa. */
-export function cerrarSesion() {
-  localStorage.removeItem(CLAVE_SESION);
+export async function cerrarSesion() {
+  await supabase.auth.signOut();
 }
 
-/** Retorna la sesion activa o null. */
-export function obtenerSesion() {
-  try {
-    return JSON.parse(localStorage.getItem(CLAVE_SESION)) || null;
-  } catch {
-    return null;
-  }
+/** Retorna la sesion activa o null (usado as\u00EDncronamente). */
+export async function obtenerSesionAsync() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return null;
+  
+  const user = session.user;
+  const dni = user.email ? user.email.replace(DOMAIN, "") : "";
+  
+  const { data: perfilData } = await supabase
+    .from("perfiles")
+    .select("rol, nombre")
+    .eq("id", user.id)
+    .single();
+
+  const rol = perfilData?.rol || "doctor";
+  const nombre = perfilData?.nombre || "Doctor";
+
+  return { dni, nombre, rol, id: user.id };
 }
 
-/** Busca un usuario por DNI. Retorna { ok, preguntaSeguridad?, error? }. */
-export function buscarUsuarioPorDni(dni) {
-  if (!validarDni(dni)) {
-    return { ok: false, error: "DNI inválido." };
-  }
-  const usuarios = leerUsuarios();
-  const usuario = usuarios.find((u) => u.dni === dni);
-  if (!usuario) {
-    return { ok: false, error: "No se encontró un usuario con este DNI." };
-  }
-  return { ok: true, preguntaSeguridad: usuario.preguntaSeguridad };
-}
-
-/** Verifica la respuesta de seguridad. */
-export async function verificarRespuestaSeguridad(dni, respuesta) {
-  const usuarios = leerUsuarios();
-  const usuario = usuarios.find((u) => u.dni === dni);
-  if (!usuario) return { ok: false, error: "Usuario no encontrado." };
-
-  const hash = await hashear(respuesta.trim().toLowerCase());
-  if (hash !== usuario.respuestaSeguridadHash) {
-    return { ok: false, error: "Respuesta incorrecta." };
-  }
-  return { ok: true };
-}
-
-/** Cambia la contrasena de un usuario. */
-export async function cambiarContrasena(dni, nuevaContrasena) {
-  if (!nuevaContrasena || nuevaContrasena.length < 4) {
-    return { ok: false, error: "La contraseña debe tener al menos 4 caracteres." };
-  }
-  const usuarios = leerUsuarios();
-  const idx = usuarios.findIndex((u) => u.dni === dni);
-  if (idx === -1) return { ok: false, error: "Usuario no encontrado." };
-
-  usuarios[idx].contrasenaHash = await hashear(nuevaContrasena);
-  guardarUsuarios(usuarios);
-  return { ok: true };
+/** Escucha cambios en la sesi\u00F3n. Útil para reaccionar cuando expira o se loguea. */
+export function onAuthStateChange(callback) {
+  const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+    if (session) {
+      const user = session.user;
+      const dni = user.email ? user.email.replace(DOMAIN, "") : "";
+      
+      const { data: perfilData } = await supabase
+        .from("perfiles")
+        .select("rol, nombre")
+        .eq("id", user.id)
+        .single();
+        
+      const rol = perfilData?.rol || "doctor";
+      const nombre = perfilData?.nombre || "Doctor";
+      callback({ dni, nombre, rol, id: user.id });
+    } else {
+      callback(null);
+    }
+  });
+  return data.subscription;
 }

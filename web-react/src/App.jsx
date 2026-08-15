@@ -3,10 +3,10 @@ import FormularioTamizaje from "./tamizaje/FormularioTamizaje.jsx";
 import PanelPendientes from "./tamizaje/PanelPendientes.jsx";
 import { casosVigentes } from "./tamizaje/casosPendientes.js";
 import { VERSION_UMBRALES } from "./tamizaje/motorTamizaje.js";
-import { obtenerSesion, cerrarSesion } from "./auth/authLocal.js";
+import { obtenerSesionAsync, cerrarSesion, onAuthStateChange } from "./auth/authLocal.js";
 import PantallaLogin from "./auth/PantallaLogin.jsx";
-import PantallaRegistro from "./auth/PantallaRegistro.jsx";
-import PantallaRecuperarContrasena from "./auth/PantallaRecuperarContrasena.jsx";
+import PanelAdmin from "./admin/PanelAdmin.jsx";
+import HistorialClinico from "./HistorialClinico.jsx";
 
 /**
  * Cascaron de la aplicacion.
@@ -16,8 +16,8 @@ import PantallaRecuperarContrasena from "./auth/PantallaRecuperarContrasena.jsx"
  * - Si hay sesion: muestra la aplicacion (Tamizaje / Pendientes) y boton de cerrar sesion
  */
 export default function App() {
-  const [usuario, setUsuario] = useState(() => obtenerSesion());
-  const [vistaAuth, setVistaAuth] = useState("login"); // "login" | "registro" | "recuperar"
+  const [usuario, setUsuario] = useState(null);
+  const [cargandoAuth, setCargandoAuth] = useState(true);
 
   const [vista, setVista] = useState("tamizaje");
   const [pendientes, setPendientes] = useState(0);
@@ -29,47 +29,53 @@ export default function App() {
   const refrescarPendientes = () => setPendientes(casosVigentes().length);
 
   useEffect(() => {
-    if (usuario) {
-      refrescarPendientes();
-    }
+    let suscripcion;
+
+    // Obtener sesi\u00F3n inicial
+    obtenerSesionAsync().then((user) => {
+      setUsuario(user);
+      setCargandoAuth(false);
+    });
+
+    // Escuchar cambios de sesi\u00F3n (login, logout)
+    suscripcion = onAuthStateChange((user) => {
+      setUsuario(user);
+      setCargandoAuth(false);
+    });
+
     const alCambiarConexion = () => setEnLinea(navigator.onLine);
     window.addEventListener("online", alCambiarConexion);
     window.addEventListener("offline", alCambiarConexion);
+
     return () => {
+      if (suscripcion) suscripcion.unsubscribe();
       window.removeEventListener("online", alCambiarConexion);
       window.removeEventListener("offline", alCambiarConexion);
     };
+  }, []);
+
+  useEffect(() => {
+    if (usuario) {
+      refrescarPendientes();
+      // Si el usuario es admin, la vista predeterminada ser\u00E1 el panel de control
+      if (usuario.rol === "admin") {
+        setVista("admin");
+      }
+    }
   }, [usuario]);
 
-  // Si no ha iniciado sesion, renderizar pantallas de autenticacion
-  if (!usuario) {
-    if (vistaAuth === "registro") {
-      return (
-        <PantallaRegistro
-          onRegistrado={() => setVistaAuth("login")}
-          onVolver={() => setVistaAuth("login")}
-        />
-      );
-    }
-    if (vistaAuth === "recuperar") {
-      return <PantallaRecuperarContrasena onVolver={() => setVistaAuth("login")} />;
-    }
-    return (
-      <PantallaLogin
-        onLogin={(u) => {
-          setUsuario(u);
-          setVistaAuth("login");
-        }}
-        onIrRegistro={() => setVistaAuth("registro")}
-        onIrRecuperar={() => setVistaAuth("recuperar")}
-      />
-    );
+  if (cargandoAuth) {
+    return <div style={{ height: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>Cargando...</div>;
   }
 
-  const alCerrarSesion = () => {
-    cerrarSesion();
+  // Si no ha iniciado sesion, renderizar pantalla de login
+  if (!usuario) {
+    return <PantallaLogin onLogin={(u) => setUsuario(u)} />;
+  }
+
+  const alCerrarSesion = async () => {
+    await cerrarSesion();
     setUsuario(null);
-    setVistaAuth("login");
   };
 
   return (
@@ -152,6 +158,20 @@ export default function App() {
           </div>
 
           <nav className="app-tabs" aria-label="Secciones">
+            {usuario.rol === "admin" && (
+              <button
+                type="button"
+                className={`app-tab ${vista === "admin" ? "app-tab-on" : ""}`}
+                onClick={() => setVista("admin")}
+                aria-current={vista === "admin"}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Admin
+              </button>
+            )}
+            
             <button
               type="button"
               className={`app-tab ${vista === "tamizaje" ? "app-tab-on" : ""}`}
@@ -163,6 +183,7 @@ export default function App() {
               </svg>
               Tamizaje
             </button>
+            
             <button
               type="button"
               className={`app-tab ${vista === "pendientes" ? "app-tab-on" : ""}`}
@@ -178,12 +199,28 @@ export default function App() {
               Pendientes
               {pendientes > 0 && <span className="app-badge">{pendientes}</span>}
             </button>
+            
+            <button
+              type="button"
+              className={`app-tab ${vista === "historial" ? "app-tab-on" : ""}`}
+              onClick={() => setVista("historial")}
+              aria-current={vista === "historial"}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+              </svg>
+              Historial
+            </button>
           </nav>
         </div>
       </header>
 
       <main className="app-main">
-        {vista === "tamizaje" ? (
+        {vista === "admin" && usuario.rol === "admin" ? (
+          <PanelAdmin />
+        ) : vista === "historial" ? (
+          <HistorialClinico />
+        ) : vista === "tamizaje" ? (
           <FormularioTamizaje
             onCasoGuardado={refrescarPendientes}
             casoARetomar={casoARetomar}
