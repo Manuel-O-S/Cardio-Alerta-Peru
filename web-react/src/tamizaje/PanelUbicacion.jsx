@@ -58,66 +58,51 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
     aplicar(ubicacionManual(borrador));
   };
 
-  const ubicarme = async () => {
+  const ubicarmeDirecto = async () => {
     setUbicando(true);
-    setMensaje("Pidiendo permiso de ubicación…");
-    setSugerencia(null);
+    setMensaje("Obteniendo ubicación GPS…");
 
     const r = await obtenerUbicacion();
 
     if (!r.ok) {
       setUbicando(false);
       setMensaje(r.mensaje);
+      setAbierto(true);
+      setModo("catalogo");
       return;
     }
-
-    setBorrador((b) => ({ ...b, lat: String(r.lat), lon: String(r.lon) }));
-    setErrores((e) => ({ ...e, lat: undefined, lon: undefined }));
 
     if (r.fueraDelPeru) {
       setUbicando(false);
       setMensaje(r.mensajeAviso);
+      setAbierto(true);
       return;
     }
 
-    const precision = describirPrecision(r.precisionM);
-
-    // 1) Intento la altitud EXACTA por servicio (SRTM). Requiere internet.
-    setMensaje(
-      `Coordenadas tomadas del GPS${precision ? ` · ${precision}` : ""}. ` +
-        "Buscando la altitud exacta…"
-    );
+    // 1) Buscamos altitud exacta o sugerida
+    let altitudFinal = 150;
     const exacta = await obtenerAltitudExacta(r.lat, r.lon);
-    setUbicando(false);
-
+    
     if (exacta.ok) {
-      setBorrador((b) => ({ ...b, altitudMsnm: String(exacta.altitudMsnm) }));
-      setSugerencia(null);
-      setMensaje(
-        `Coordenadas tomadas del GPS${precision ? ` · ${precision}` : ""}. ` +
-          `Altitud exacta obtenida por servicio de elevación: ${exacta.altitudMsnm} msnm. ` +
-          "Verifícala antes de guardar: define el umbral del tamizaje."
-      );
-      return;
+      altitudFinal = exacta.altitudMsnm;
+    } else {
+      const sug = deducirDesdeCoordenadas(r.lat, r.lon);
+      if (sug?.altitudSugerida) altitudFinal = sug.altitudSugerida;
     }
 
-    // 2) Sin internet o el servicio falló: caigo al respaldo offline (punto
-    // de referencia más cercano de los 13 conocidos), como antes.
-    const sug = deducirDesdeCoordenadas(r.lat, r.lon);
-    setSugerencia(sug);
+    // 2) Deducir establecimiento más cercano
+    const deducido = deducirDesdeCoordenadas(r.lat, r.lon);
+    const nueva = {
+      id: deducido?.id || "manual",
+      nombre: deducido ? deducido.referencia : "Ubicación detectada por GPS",
+      altitudMsnm: altitudFinal,
+      lat: r.lat,
+      lon: r.lon,
+      manual: true,
+    };
 
-    const razon =
-      exacta.motivo === "sin_conexion" || exacta.motivo === "tiempo_agotado"
-        ? "no hay conexión para pedir la altitud exacta"
-        : "el servicio de altitud exacta no respondió";
-
-    setMensaje(
-      `Coordenadas tomadas del GPS${precision ? ` · ${precision}` : ""}. ` +
-        `${razon.charAt(0).toUpperCase()}${razon.slice(1)}, así que ` +
-        (sug
-          ? "te dejo una altitud aproximada abajo: revísala antes de guardar."
-          : "escribí la altitud a mano.")
-    );
+    setUbicando(false);
+    aplicar(nueva);
   };
 
   if (!abierto) {
@@ -137,15 +122,46 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
               {ubicacion.lat}, {ubicacion.lon}
             </p>
           </div>
-          <button type="button" className="ubi-cambiar" onClick={() => setAbierto(true)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-            Localizar coordenadas
-          </button>
+          <div className="ubi-botones-resumen">
+            <button 
+              type="button" 
+              className="ubi-cambiar ubi-btn-gps" 
+              onClick={ubicarmeDirecto} 
+              disabled={ubicando}
+              title="Obtener coordenadas GPS automáticamente"
+            >
+              {ubicando ? (
+                <>
+                  <span className="ubi-spinner"></span>
+                  Localizando…
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                  Localizar coordenadas
+                </>
+              )}
+            </button>
+            <button 
+              type="button" 
+              className="ubi-btn-sec-lista" 
+              onClick={() => { setAbierto(true); setModo("catalogo"); }}
+              title="Elegir de la lista de provincias"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              Elegir de la lista
+            </button>
+          </div>
         </div>
-        {ubicacion.manual && (
+        {mensaje && !abierto && (
+          <p className="ubi-aviso" style={{ marginTop: 10 }}>
+            {mensaje}
+          </p>
+        )}
+        {ubicacion.manual && !mensaje && (
           <p className="ubi-aviso">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            {"Ubicación configurada a mano. La altitud define el umbral de saturación que se aplica: verifícala antes de tamizar."}
+            Ubicación detectada automáticamente por GPS. La altitud define el umbral del tamizaje.
           </p>
         )}
       </section>
@@ -384,15 +400,22 @@ const CSS_UBI = `
 
 .ubi-dato-sep { color: var(--tenue); }
 
+.ubi-botones-resumen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .ubi-cambiar {
   flex-shrink: 0;
   background: var(--carta-solida);
   border: 1.5px solid var(--linea);
   border-radius: var(--radio-sm);
-  padding: 9px 16px;
+  padding: 9px 14px;
   font-family: 'Inter', inherit;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--acento);
   cursor: pointer;
   display: flex;
@@ -401,11 +424,57 @@ const CSS_UBI = `
   transition: all var(--dur) var(--ease-out);
 }
 
-.ubi-cambiar:hover {
-  border-color: var(--acento-linea);
-  background: var(--acento-suave);
+.ubi-btn-gps {
+  background: linear-gradient(135deg, var(--acento), #6366f1);
+  color: #fff !important;
+  border: none;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.ubi-btn-gps:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
   transform: translateY(-1px);
-  box-shadow: var(--sombra-sm);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.ubi-btn-gps:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.ubi-btn-sec-lista {
+  background: var(--carta-solida);
+  border: 1.5px solid var(--linea);
+  border-radius: var(--radio-sm);
+  padding: 8px 12px;
+  font-family: 'Inter', inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--suave);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all var(--dur-fast) ease;
+}
+
+.ubi-btn-sec-lista:hover {
+  border-color: var(--acento-linea);
+  color: var(--acento);
+  background: var(--acento-suave);
+}
+
+.ubi-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .ubi-aviso {

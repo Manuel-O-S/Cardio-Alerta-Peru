@@ -1,29 +1,36 @@
 import { EXAMENES_LABELS } from "./hospitales.js";
 
 /**
- * Tarjeta visual de un hospital dentro del panel de ubicaci\u00F3n.
- *
- * Muestra nombre, profesionales disponibles, ex\u00E1menes (verde/rojo),
- * direcci\u00F3n, contacto y bot\u00F3n "Seleccionar".
+ * Tarjeta visual de un hospital dentro del panel de derivación.
+ * Muestra nombre, profesionales disponibles, exámenes (verde/rojo),
+ * dirección, contacto y botón "Seleccionar para derivar".
  */
-export default function TarjetaHospital({ hospital, onSeleccionar }) {
+export default function TarjetaHospital({ hospital, seleccionado, onSeleccionar }) {
   const { nombre, profesionales, examenes, direccion, contacto } = hospital;
   const todosDisponibles = profesionales.disponibles === profesionales.total;
 
   return (
-    <div className="hosp-tarjeta">
+    <div className={`hosp-tarjeta ${seleccionado ? "hosp-tarjeta-seleccionada" : ""}`}>
       <style>{CSS_HOSP}</style>
 
       {/* Cabecera: icono + nombre */}
       <div className="hosp-cab">
-        <span className="hosp-icono">
+        <span className={`hosp-icono ${seleccionado ? "hosp-icono-sel" : ""}`}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 21h18" /><path d="M5 21V7l7-4 7 4v14" />
             <path d="M9 21v-4h6v4" /><path d="M10 10h1" /><path d="M14 10h-1" />
             <path d="M10 14h1" /><path d="M14 14h-1" />
           </svg>
         </span>
-        <h4 className="hosp-nombre">{nombre}</h4>
+        <div style={{ flex: 1 }}>
+          <h4 className="hosp-nombre">{nombre}</h4>
+          {seleccionado && (
+            <span className="hosp-chip-sel">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+              Hospital Seleccionado
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Profesionales */}
@@ -73,7 +80,7 @@ export default function TarjetaHospital({ hospital, onSeleccionar }) {
         </ul>
       </div>
 
-      {/* Direcci\u00F3n y contacto */}
+      {/* Dirección y contacto */}
       <div className="hosp-pie">
         <div className="hosp-dato">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -90,13 +97,15 @@ export default function TarjetaHospital({ hospital, onSeleccionar }) {
         </div>
       </div>
 
-      {/* Bot\u00F3n seleccionar */}
-      <button type="button" className="hosp-seleccionar" onClick={onSeleccionar}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-        {"Seleccionar"}
-      </button>
+      {/* Botón seleccionar */}
+      {!seleccionado && onSeleccionar && (
+        <button type="button" className="hosp-seleccionar" onClick={onSeleccionar}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          Seleccionar para derivar
+        </button>
+      )}
     </div>
   );
 }
@@ -120,6 +129,12 @@ const CSS_HOSP = `
   box-shadow: var(--sombra-md);
 }
 
+.hosp-tarjeta-seleccionada {
+  border: 2px solid #16a34a !important;
+  background: linear-gradient(to bottom, rgba(22, 163, 74, 0.03), var(--carta-solida, #fff)) !important;
+  box-shadow: 0 4px 16px rgba(22, 163, 74, 0.15) !important;
+}
+
 /* --- Cabecera --- */
 .hosp-cab {
   display: flex;
@@ -140,6 +155,12 @@ const CSS_HOSP = `
   flex-shrink: 0;
 }
 
+.hosp-icono-sel {
+  background: rgba(22, 163, 74, 0.12) !important;
+  border-color: rgba(22, 163, 74, 0.3) !important;
+  color: #16a34a !important;
+}
+
 .hosp-nombre {
   margin: 0;
   font-size: 14px;
@@ -147,6 +168,19 @@ const CSS_HOSP = `
   color: var(--tinta);
   line-height: 1.3;
   letter-spacing: -0.01em;
+}
+
+.hosp-chip-sel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.1);
+  padding: 2px 8px;
+  border-radius: 20px;
 }
 
 /* --- Profesionales --- */
@@ -185,7 +219,7 @@ const CSS_HOSP = `
   border: 1px solid var(--ambar-linea, rgba(245, 158, 11, 0.25));
 }
 
-/* --- Ex\u00E1menes --- */
+/* --- Exámenes --- */
 .hosp-examenes {
   display: flex;
   flex-direction: column;
@@ -250,7 +284,7 @@ const CSS_HOSP = `
   text-decoration-color: rgba(220, 38, 38, 0.4);
 }
 
-/* --- Pie: direcci\u00F3n y contacto --- */
+/* --- Pie: dirección y contacto --- */
 .hosp-pie {
   display: flex;
   flex-direction: column;
@@ -273,7 +307,7 @@ const CSS_HOSP = `
   margin-top: 1px;
 }
 
-/* --- Bot\u00F3n seleccionar --- */
+/* --- Botón seleccionar --- */
 .hosp-seleccionar {
   width: 100%;
   padding: 10px;
@@ -302,3 +336,4 @@ const CSS_HOSP = `
   transform: translateY(0);
 }
 `;
+

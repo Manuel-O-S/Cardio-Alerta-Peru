@@ -466,13 +466,7 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
           </>
         )}
 
-      {salida?.ok &&
-        (salida.resultado === Resultado.POSITIVO ||
-          salida.resultado === Resultado.NO_ELEGIBLE) && (
-          <PanelDerivacion latInicial={ubicacion.lat} lonInicial={ubicacion.lon} />
-        )}
-
-      {/* Hospitales de derivación locales para Amarillos y Rojos */}
+      {/* 1. Hospitales de derivación locales para Amarillos y Rojos (ANTES QUE DERIVACIÓN GENERAL) */}
       {salida?.ok &&
         (salida.resultado === Resultado.POSITIVO ||
          salida.resultado === Resultado.REPETIR ||
@@ -480,10 +474,16 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
           <PanelDerivacionHospitales 
             ubicacion={ubicacion} 
             onHospitalSeleccionado={(h) => {
-              // Por ahora solo es visual o para futuras integraciones.
-              console.log("Hospital seleccionado:", h.nombre);
+              console.log("Hospital seleccionado:", h?.nombre);
             }} 
           />
+        )}
+
+      {/* 2. Búsqueda y cálculo de centros de derivación por radio/GPS */}
+      {salida?.ok &&
+        (salida.resultado === Resultado.POSITIVO ||
+          salida.resultado === Resultado.NO_ELEGIBLE) && (
+          <PanelDerivacion latInicial={ubicacion.lat} lonInicial={ubicacion.lon} />
         )}
 
       {salida && !salida.ok && (

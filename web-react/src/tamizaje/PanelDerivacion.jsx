@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import AvisoDatosOffline from "./AvisoDatosOffline.jsx";
 import { buscarLocal } from "./datosOffline.js";
 import { describirPrecision, obtenerUbicacion } from "./geolocalizacion.js";
 
@@ -282,8 +281,7 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
         </>
       )}
 
-      <AvisoDatosOffline onCambio={() => buscar()} />
-
+      {/* Filtro de ocupados */}
       <label className="tz-ver-ocupados">
         <input
           type="checkbox"
