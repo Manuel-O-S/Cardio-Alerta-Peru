@@ -16,8 +16,8 @@ import HistorialClinico from "./HistorialClinico.jsx";
  * - Si hay sesion: muestra la aplicacion (Tamizaje / Pendientes) y boton de cerrar sesion
  */
 export default function App() {
-  const [usuario, setUsuario] = useState({ rol: "admin", nombre: "Admin Prueba", dni: "00000000", id: "000" });
-  const [cargandoAuth, setCargandoAuth] = useState(false);
+  const [usuario, setUsuario] = useState(null);
+  const [cargandoAuth, setCargandoAuth] = useState(true);
 
   const [vista, setVista] = useState("tamizaje");
   const [pendientes, setPendientes] = useState(0);
@@ -29,7 +29,6 @@ export default function App() {
   const refrescarPendientes = () => setPendientes(casosVigentes().length);
 
   useEffect(() => {
-    /*
     let suscripcion;
 
     // Obtener sesión inicial
@@ -43,14 +42,13 @@ export default function App() {
       setUsuario(user);
       setCargandoAuth(false);
     });
-    */
 
     const alCambiarConexion = () => setEnLinea(navigator.onLine);
     window.addEventListener("online", alCambiarConexion);
     window.addEventListener("offline", alCambiarConexion);
 
     return () => {
-      // if (suscripcion) suscripcion.unsubscribe();
+      if (suscripcion) suscripcion.unsubscribe();
       window.removeEventListener("online", alCambiarConexion);
       window.removeEventListener("offline", alCambiarConexion);
     };
@@ -78,55 +76,7 @@ export default function App() {
 
   // === RENDERIZADO EXCLUSIVO PARA ADMINISTRADORES ===
   if (usuario.rol === "admin") {
-    return (
-      <div className="app">
-        <style>{CSS_APP}</style>
-        <header className="app-cab">
-          <div className="app-cab-fondo"></div>
-          <div className="app-cab-contenido">
-            <div className="app-cab-fila">
-              <div className="app-marca">
-                <div className="app-logo">
-                  <svg viewBox="0 0 40 40" className="app-logo-svg" aria-hidden="true">
-                    <defs>
-                      <linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#ff6b6b" />
-                        <stop offset="100%" stopColor="#ee5a24" />
-                      </linearGradient>
-                    </defs>
-                    <path
-                      d="M20 35 C10 25, 2 18, 2 12 C2 6, 7 2, 12 2 C15.5 2, 18.5 4, 20 7 C21.5 4, 24.5 2, 28 2 C33 2, 38 6, 38 12 C38 18, 30 25, 20 35Z"
-                      fill="url(#hg)"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h1 className="app-titulo">Panel Administrativo</h1>
-                  <p className="app-sub">Gestión de usuarios y accesos</p>
-                </div>
-              </div>
-              <div className="app-cab-derecha">
-                <div className="app-usuario-badge">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                  <span className="app-usuario-nombre" title={`DNI: ${usuario.dni}`}>
-                    Admin: {usuario.nombre}
-                  </span>
-                  <button type="button" className="app-btn-logout" onClick={alCerrarSesion} title="Cerrar sesión">
-                    <span>Salir</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-        <main className="app-main">
-          <PanelAdmin />
-        </main>
-      </div>
-    );
+    return <PanelAdmin usuario={usuario} onCerrarSesion={alCerrarSesion} />;
   }
 
   // === RENDERIZADO PARA DOCTORES ===

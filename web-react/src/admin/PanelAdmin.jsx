@@ -13,7 +13,7 @@ const adminAuthClient = createClient(
   }
 );
 
-export default function PanelAdmin() {
+export default function PanelAdmin({ usuario, onCerrarSesion }) {
   const [vistaActiva, setVistaActiva] = useState("doctores");
   
   // Estados para Doctores
@@ -165,6 +165,21 @@ export default function PanelAdmin() {
             Log de Accesos
           </button>
         </nav>
+        
+        {/* Footer del Sidebar con Info de Usuario y Botón Salir */}
+        <div className="admin-sidebar-footer">
+          <div className="admin-user-info">
+            <div className="admin-avatar">A</div>
+            <div className="admin-user-details">
+              <span className="admin-user-name">{usuario?.nombre || "Administrador"}</span>
+              <span className="admin-user-role">DNI: {usuario?.dni || "---"}</span>
+            </div>
+          </div>
+          <button className="admin-btn-logout" onClick={onCerrarSesion}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            Cerrar Sesión
+          </button>
+        </div>
       </aside>
 
       {/* MAIN CONTENT */}
@@ -342,9 +357,12 @@ export default function PanelAdmin() {
 const CSS_ADMIN = `
   .admin-dashboard {
     display: flex;
-    min-height: calc(100vh - 70px);
+    min-height: 100vh;
+    width: 100vw;
     background: #f8fafc;
-    margin: -32px -20px -48px -20px;
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', system-ui, sans-serif;
   }
 
   .admin-sidebar {
@@ -400,6 +418,76 @@ const CSS_ADMIN = `
     background: #3b82f6;
     color: white;
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+
+  .admin-sidebar-footer {
+    margin-top: auto;
+    padding: 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .admin-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .admin-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: white;
+  }
+
+  .admin-user-details {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .admin-user-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #f8fafc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+  }
+
+  .admin-user-role {
+    font-size: 0.75rem;
+    color: #94a3b8;
+  }
+
+  .admin-btn-logout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px;
+    background: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .admin-btn-logout:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
   }
 
   .admin-content {
