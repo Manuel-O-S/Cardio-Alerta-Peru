@@ -162,28 +162,12 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
         </div>
       </div>
 
-      <div className="tz-fila">
-        <div className="tz-campo">
-          <label className="tz-label">
-            Latitud<span className="tz-ayuda"> · del establecimiento</span>
-          </label>
-          <input
-            className="tz-input tz-mono"
-            value={lat}
-            onChange={(e) => setLat(e.target.value)}
-            placeholder="-15.49"
-            inputMode="decimal"
-          />
-        </div>
-        <div className="tz-campo">
-          <label className="tz-label">Longitud</label>
-          <input
-            className="tz-input tz-mono"
-            value={lon}
-            onChange={(e) => setLon(e.target.value)}
-            placeholder="-70.13"
-            inputMode="decimal"
-          />
+      <div className="tz-campo" style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "var(--suave)" }}>
+          <span style={{ fontWeight: 600, color: "var(--tinta)" }}>📍 Coordenadas de búsqueda:</span>
+          <span className="tz-mono" style={{ background: "var(--campo, #f1f5f9)", padding: "3px 10px", borderRadius: "6px", border: "1px solid var(--linea)", fontWeight: 600, color: "var(--acento)" }}>
+            {lat}, {lon}
+          </span>
         </div>
       </div>
 

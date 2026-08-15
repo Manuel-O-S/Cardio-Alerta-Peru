@@ -171,162 +171,53 @@ export default function PanelUbicacion({ ubicacion, onCambio }) {
   return (
     <section className="tz-card ubi-panel-abierto">
       <style>{CSS_UBI}</style>
-      <div className="tz-seccion-cab">
-        <span className="ubi-paso">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        </span>
-        <div>
-          <h2 className="tz-seccion">Ubicación del establecimiento</h2>
-          <p className="tz-seccion-desc">La altitud define el umbral; las coordenadas, la derivación</p>
+      <div className="tz-seccion-cab" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span className="ubi-paso">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </span>
+          <div>
+            <h2 className="tz-seccion" style={{ margin: 0 }}>Elegir Establecimiento o Provincia</h2>
+            <p className="tz-seccion-desc" style={{ margin: 0 }}>Selecciona tu localidad del catálogo oficial</p>
+          </div>
         </div>
-      </div>
-
-      <div className="tz-chips" style={{ marginBottom: 16 }}>
-        <button
-          type="button"
-          className={`tz-chip ${modo === "catalogo" ? "tz-chip-on" : ""}`}
-          onClick={() => setModo("catalogo")}
-          aria-pressed={modo === "catalogo"}
+        <button 
+          type="button" 
+          onClick={() => setAbierto(false)} 
+          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--suave)", padding: "4px 8px", fontSize: "14px", fontWeight: 600 }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          Elegir de la lista
-        </button>
-        <button
-          type="button"
-          className={`tz-chip ${modo === "manual" ? "tz-chip-on" : ""}`}
-          onClick={() => setModo("manual")}
-          aria-pressed={modo === "manual"}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          Escribir coordenadas
+          ✕ Cerrar
         </button>
       </div>
 
-      {modo === "catalogo" ? (
-        <div className="ubi-lista-marco">
-          <ul className="ubi-lista">
-            {ESTABLECIMIENTOS.map((e, i) => (
-                <li key={e.id} style={{ animationDelay: `${0.03 * i}s` }}>
-                  <button
-                    type="button"
-                    className="ubi-opcion"
-                    onClick={() => elegirDelCatalogo(e.id)}
-                  >
-                    <div className="ubi-opcion-info">
-                      <span className="ubi-opcion-nombre">{e.nombre}</span>
-                      <span className="ubi-opcion-depto">{e.departamento}</span>
-                    </div>
-                    <div className="ubi-opcion-derecha">
-                      <span className="ubi-opcion-alt tz-mono">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
-                        {e.altitudMsnm} msnm
-                      </span>
-                    </div>
-                  </button>
-                </li>
-            ))}
-          </ul>
-        </div>
-      ) : (
-        <>
-          <div className="tz-campo">
-            <label className="tz-label">Nombre del establecimiento</label>
-            <input
-              className="tz-input"
-              value={borrador.nombre}
-              onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })}
-              placeholder="Centro de Salud …"
-            />
-          </div>
-
-          <div className="tz-fila">
-            <div className="tz-campo">
-              <label className="tz-label">Latitud</label>
-              <input
-                className={`tz-input tz-mono ${errores.lat ? "tz-error" : ""}`}
-                value={borrador.lat}
-                onChange={(e) => setBorrador({ ...borrador, lat: e.target.value })}
-                placeholder="-15.4990"
-                inputMode="decimal"
-              />
-              {errores.lat && <span className="tz-mensaje-error">{errores.lat}</span>}
-            </div>
-            <div className="tz-campo">
-              <label className="tz-label">Longitud</label>
-              <input
-                className={`tz-input tz-mono ${errores.lon ? "tz-error" : ""}`}
-                value={borrador.lon}
-                onChange={(e) => setBorrador({ ...borrador, lon: e.target.value })}
-                placeholder="-70.1338"
-                inputMode="decimal"
-              />
-              {errores.lon && <span className="tz-mensaje-error">{errores.lon}</span>}
-            </div>
-          </div>
-
-          <div className="tz-campo">
-            <label className="tz-label">
-              Altitud (msnm)
-              <span className="tz-ayuda"> {"· define el umbral del tamizaje"}</span>
-            </label>
-            <input
-              className={`tz-input tz-mono ${errores.altitudMsnm ? "tz-error" : ""}`}
-              value={borrador.altitudMsnm}
-              onChange={(e) => setBorrador({ ...borrador, altitudMsnm: e.target.value })}
-              placeholder="3825"
-              inputMode="numeric"
-            />
-            {errores.altitudMsnm && (
-              <span className="tz-mensaje-error">{errores.altitudMsnm}</span>
-            )}
-          </div>
-
-          {mensaje && <p className="tz-nota">{mensaje}</p>}
-
-          {sugerencia && (
-            <div className={`ubi-sugerencia ${sugerencia.fiable ? "" : "ubi-sugerencia-dudosa"}`}>
-              <p className="ubi-sug-titulo">
-                {sugerencia.fiable
-                  ? `Departamento: ${sugerencia.departamento}`
-                  : `Departamento aproximado: ${sugerencia.departamento}`}
-              </p>
-              <p className="ubi-sug-texto">
-                {`Punto de referencia mas cercano: ${sugerencia.referencia}, a ${sugerencia.distanciaKm} km.`}
-                {!sugerencia.fiable &&
-                  " Esta lejos, asi que el departamento puede no ser el correcto."}
-              </p>
+      <div className="ubi-lista-marco" style={{ marginTop: 14 }}>
+        <ul className="ubi-lista">
+          {ESTABLECIMIENTOS.map((e, i) => (
+            <li key={e.id} style={{ animationDelay: `${0.03 * i}s` }}>
               <button
                 type="button"
-                className="ubi-sug-boton"
-                onClick={() =>
-                  setBorrador((b) => ({ ...b, altitudMsnm: String(sugerencia.altitudSugerida) }))
-                }
+                className="ubi-opcion"
+                onClick={() => elegirDelCatalogo(e.id)}
               >
-                {`Usar ${sugerencia.altitudSugerida} msnm como altitud`}
+                <div className="ubi-opcion-info">
+                  <span className="ubi-opcion-nombre">{e.nombre}</span>
+                  <span className="ubi-opcion-depto">{e.departamento}</span>
+                </div>
+                <div className="ubi-opcion-derecha">
+                  <span className="ubi-opcion-alt tz-mono">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+                    {e.altitudMsnm} msnm
+                  </span>
+                </div>
               </button>
-              <p className="ubi-sug-aviso">
-                Es la altitud de {sugerencia.referencia}, no la de este establecimiento.
-                Como decide el umbral del tamizaje, verificala antes de guardar.
-              </p>
-            </div>
-          )}
+            </li>
+          ))}
+        </ul>
+      </div>
 
-          <div className="tz-acciones">
-            <button type="button" className="tz-boton tz-boton-pri" onClick={guardarManual}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              Guardar ubicación
-            </button>
-            <button type="button" className="tz-boton tz-boton-sec" onClick={ubicarme} disabled={ubicando}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-              {ubicando ? "Ubicando…" : "Usar GPS para las coordenadas"}
-            </button>
-          </div>
-        </>
-      )}
-
-      <button type="button" className="ubi-cancelar" onClick={() => setAbierto(false)}>
+      <button type="button" className="ubi-cancelar" onClick={() => setAbierto(false)} style={{ marginTop: 14 }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        Cancelar
+        Cerrar lista
       </button>
     </section>
   );

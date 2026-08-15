@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ADVERTENCIA_HIDRATACION,
   FACTOR_CARDIACO_SUGERIDO,
@@ -6,16 +6,19 @@ import {
   calcular,
 } from "./hidratacion.js";
 
+const OPCIONES_EDAD_GESTACIONAL = [
+  { valor: "26", etiqueta: "<28 sem (Extremo)" },
+  { valor: "30", etiqueta: "28-32 sem (Muy prematuro)" },
+  { valor: "35", etiqueta: "33-36 sem (Prematuro tardío)" },
+  { valor: "38", etiqueta: "37-40 sem (A término)" },
+  { valor: "41", etiqueta: ">40 sem (Postérmino)" },
+];
+
 /**
- * Calculadora de liquidos de mantenimiento.
+ * Calculadora de líquidos de mantenimiento.
  *
- * Devuelve un volumen de PARTIDA, no una indicacion: los protocolos varian
- * entre unidades y el aporte real se ajusta segun balance, diuresis, peso
- * diario y sodio. Por eso muestra el desarrollo y la tabla de la que sale.
- *
- * Los tres datos que la determinan —peso, horas de vida y edad gestacional—
- * ya se ingresaron en el tamizaje, asi que llegan precargados y no hay que
- * volver a escribirlos.
+ * Horas de vida se toma automáticamente del tamizaje anterior.
+ * La edad gestacional es manipulable para ajustar el cálculo hídrico.
  */
 export default function CalculadoraHidratacion({
   pesoInicial,
@@ -25,13 +28,31 @@ export default function CalculadoraHidratacion({
   const [abierta, setAbierta] = useState(false);
   const [f, setF] = useState({
     pesoKg: pesoInicial != null ? String(pesoInicial) : "",
-    horasDeVida: horasInicial != null ? String(horasInicial) : "",
-    edadGestacionalSem: edadGestacionalInicial != null ? String(edadGestacionalInicial) : "",
+    horasDeVida: horasInicial != null ? String(horasInicial) : "24",
+    edadGestacionalSem: edadGestacionalInicial != null ? String(edadGestacionalInicial) : "38",
     puntoDelRango: "minimo",
     restriccionCardiaca: false,
     factorRestriccion: String(FACTOR_CARDIACO_SUGERIDO),
   });
   const [calculado, setCalculado] = useState(false);
+
+  useEffect(() => {
+    if (horasInicial != null) {
+      setF((prev) => ({ ...prev, horasDeVida: String(horasInicial) }));
+    }
+  }, [horasInicial]);
+
+  useEffect(() => {
+    if (pesoInicial != null) {
+      setF((prev) => ({ ...prev, pesoKg: String(pesoInicial) }));
+    }
+  }, [pesoInicial]);
+
+  useEffect(() => {
+    if (edadGestacionalInicial != null) {
+      setF((prev) => ({ ...prev, edadGestacionalSem: String(edadGestacionalInicial) }));
+    }
+  }, [edadGestacionalInicial]);
 
   const set = (campo) => (e) => {
     const valor = e.target.type === "checkbox" ? e.target.checked : e.target.value;
@@ -48,9 +69,9 @@ export default function CalculadoraHidratacion({
         <style>{CSS_HID}</style>
         <div className="hid-fila">
           <div>
-            <span className="hid-etiqueta">Hidratacion</span>
+            <span className="hid-etiqueta">Hidratación</span>
             <p className="hid-cerrada-texto">
-              Volumen de mantenimiento segun peso, dia de vida y edad gestacional
+              Volumen de mantenimiento según peso, día de vida y edad gestacional
             </p>
           </div>
           <button type="button" className="hid-abrir" onClick={() => setAbierta(true)}>
@@ -66,15 +87,14 @@ export default function CalculadoraHidratacion({
       <style>{CSS_HID}</style>
 
       <div className="hid-fila">
-        <span className="hid-etiqueta">Liquidos de mantenimiento</span>
+        <span className="hid-etiqueta">Líquidos de mantenimiento</span>
         <button type="button" className="hid-cerrar" onClick={() => setAbierta(false)}>
           Cerrar
         </button>
       </div>
 
-      {/* Estos tres datos ya se ingresaron en el tamizaje. Se muestran como
-          contexto, no como campos: volver a pedirlos invita a que difieran del
-          caso que se acaba de evaluar. Si falta alguno, se puede escribir. */}
+      {/* Datos del paciente: Horas de vida se hereda directamente del tamizaje,
+          mientras que la edad gestacional se puede ajustar directamente aquí */}
       <div className="hid-heredado">
         <div className="hid-dato">
           <span className="hid-dato-etq">Peso</span>
@@ -87,36 +107,32 @@ export default function CalculadoraHidratacion({
               onChange={set("pesoKg")}
               placeholder="3.2"
               inputMode="decimal"
+              style={{ maxWidth: 90, padding: "6px 8px" }}
             />
           )}
         </div>
+
         <div className="hid-dato">
-          <span className="hid-dato-etq">Horas de vida</span>
-          {horasInicial != null ? (
-            <span className="hid-dato-val tz-mono">{f.horasDeVida} h</span>
-          ) : (
-            <input
-              className={`tz-input tz-mono ${errores.horasDeVida ? "tz-error" : ""}`}
-              value={f.horasDeVida}
-              onChange={set("horasDeVida")}
-              placeholder="30"
-              inputMode="numeric"
-            />
-          )}
+          <span className="hid-dato-etq">Horas de vida (Tamizaje)</span>
+          <span className="hid-dato-val tz-mono" style={{ color: "var(--acento)", fontWeight: 600 }}>
+            {horasInicial != null ? `${horasInicial} h` : `${f.horasDeVida || 24} h`}
+          </span>
         </div>
-        <div className="hid-dato">
-          <span className="hid-dato-etq">Edad gestacional</span>
-          {edadGestacionalInicial != null ? (
-            <span className="hid-dato-val tz-mono">{f.edadGestacionalSem} sem</span>
-          ) : (
-            <input
-              className={`tz-input tz-mono ${errores.edadGestacionalSem ? "tz-error" : ""}`}
-              value={f.edadGestacionalSem}
-              onChange={set("edadGestacionalSem")}
-              placeholder="38"
-              inputMode="numeric"
-            />
-          )}
+
+        <div className="hid-dato" style={{ flex: 1.2 }}>
+          <span className="hid-dato-etq">Edad gestacional (Ajustable)</span>
+          <select
+            className="tz-input tz-mono"
+            value={f.edadGestacionalSem}
+            onChange={set("edadGestacionalSem")}
+            style={{ padding: "6px 8px", fontSize: "12.5px" }}
+          >
+            {OPCIONES_EDAD_GESTACIONAL.map((op) => (
+              <option key={op.valor} value={op.valor}>
+                {op.etiqueta}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
       {(errores.pesoKg || errores.horasDeVida || errores.edadGestacionalSem) && (
