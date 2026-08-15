@@ -478,7 +478,7 @@ export default function FormularioTamizaje({ onCasoGuardado, casoARetomar, onCas
          salida.resultado === Resultado.REPETIR ||
          salida.resultado === Resultado.NO_ELEGIBLE) && (
           <PanelDerivacionHospitales 
-            ubicacionId={ubicacion?.id} 
+            ubicacion={ubicacion} 
             onHospitalSeleccionado={(h) => {
               // Por ahora solo es visual o para futuras integraciones.
               console.log("Hospital seleccionado:", h.nombre);

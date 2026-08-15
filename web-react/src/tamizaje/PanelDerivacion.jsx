@@ -69,7 +69,7 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
 
   const ubicarme = async () => {
     setUbicando(true);
-    setMensaje("Pidiendo permiso de ubicaci\u00F3n\u2026");
+    setMensaje("Pidiendo permiso de ubicación…");
 
     const r = await obtenerUbicacion();
     setUbicando(false);
@@ -86,7 +86,7 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
     setMensaje(
       r.fueraDelPeru
         ? r.mensajeAviso
-        : `Ubicaci\u00F3n obtenida${precision ? ` \u00B7 ${precision}` : ""}.`
+        : `Ubicación obtenida${precision ? ` · ${precision}` : ""}.`
     );
 
     buscar({ latForzada: r.lat, lonForzada: r.lon, conservarMensaje: true });
@@ -127,7 +127,7 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
 
     try {
       const r = await fetch(`${API}/centros-cercanos/?${params}`);
-      if (!r.ok) throw new Error(`El servidor respondi\u00F3 ${r.status}`);
+      if (!r.ok) throw new Error(`El servidor respondió ${r.status}`);
       const datos = await r.json();
       setCentros(datos.centros || []);
       setMeta({
@@ -142,10 +142,10 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
         setCentros(cache.centros);
         setMeta({ hayDisponibles: cache.hay_disponibles ?? null, origen: cache.origen_datos ?? null });
         setEstado("cache");
-        setMensaje("Sin conexi\u00F3n. Se muestra la \u00FAltima consulta guardada.");
+        setMensaje("Sin conexión. Se muestra la última consulta guardada.");
       } else {
         setEstado("error");
-        setMensaje("Sin conexi\u00F3n y sin datos guardados. Consulta la lista impresa del establecimiento.");
+        setMensaje("Sin conexión y sin datos guardados. Consulta la lista impresa del establecimiento.");
       }
     }
   };
@@ -158,15 +158,15 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         </span>
         <div>
-          <h2 className="tz-seccion">Derivaci\u00F3n</h2>
-          <p className="tz-seccion-desc">Centros con capacidad cardiol\u00F3gica neonatal</p>
+          <h2 className="tz-seccion">Derivación</h2>
+          <p className="tz-seccion-desc">Centros con capacidad cardiológica neonatal</p>
         </div>
       </div>
 
       <div className="tz-fila">
         <div className="tz-campo">
           <label className="tz-label">
-            Latitud<span className="tz-ayuda"> {"\u00B7 del establecimiento"}</span>
+            Latitud<span className="tz-ayuda"> · del establecimiento</span>
           </label>
           <input
             className="tz-input tz-mono"
@@ -210,7 +210,7 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
           {estado === "cargando" ? (
             <>
               <span className="deriv-spinner"></span>
-              Buscando\u2026
+              Buscando…
             </>
           ) : (
             <>
@@ -221,7 +221,7 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
         </button>
         <button type="button" className="tz-boton tz-boton-sec" onClick={ubicarme} disabled={ubicando}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-          {ubicando ? "Ubicando\u2026" : "Usar mi ubicaci\u00F3n"}
+          {ubicando ? "Ubicando…" : "Usar mi ubicación"}
         </button>
       </div>
 
@@ -230,27 +230,27 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
       {estado === "cache" && centros.length > 0 && (
         <p className="tz-nota">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          {"Datos guardados de la \u00FAltima consulta con conexi\u00F3n."}
+          Datos guardados de la última consulta con conexión.
         </p>
       )}
 
       {meta.hayDisponibles === false && (
         <p className="tz-alerta">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          {"Ninguno de los hospitales que cumple los filtros figura como disponible. Se muestran de todas formas: confirmar por tel\u00E9fono antes de trasladar."}
+          Ninguno de los hospitales que cumple los filtros figura como disponible. Se muestran de todas formas: confirmar por teléfono antes de trasladar.
         </p>
       )}
 
       {meta.origen === "dispositivo" && centros.length > 0 && (
         <p className="tz-nota">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          {"B\u00FAsqueda hecha con los hospitales guardados en este dispositivo. Confirmar la disponibilidad por tel\u00E9fono antes de trasladar."}
+          Búsqueda hecha con los hospitales guardados en este dispositivo. Confirmar la disponibilidad por teléfono antes de trasladar.
         </p>
       )}
 
       {meta.origen === "archivo_json" && centros.length > 0 && (
         <p className="tz-nota">
-          {"Sin dato de disponibilidad: la lista viene del respaldo local. Confirmar antes de trasladar."}
+          Sin dato de disponibilidad: la lista viene del respaldo local. Confirmar antes de trasladar.
         </p>
       )}
 
@@ -271,8 +271,8 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
                       </span>
                     </div>
                     <p className="tz-centro-datos">
-                      {c.direccion} {"\u00B7"} Nivel {c.nivel} {"\u00B7"} {c.iafas}
-                      {c.status ? ` \u00B7 ${c.status}` : ""}
+                      {c.direccion} · Nivel {c.nivel} · {c.iafas}
+                      {c.status ? ` · ${c.status}` : ""}
                     </p>
                   </li>
                 ))}
@@ -300,22 +300,6 @@ export default function PanelDerivacion({ latInicial, lonInicial }) {
 /**
  * El hospital al que se deriva.
  */
-/**
- * Enlace de ruta a Google Maps.
- *
- * POR QUE NO SE USAN LAS COORDENADAS
- * Las coordenadas de la base son aproximadas: varias corresponden al centro
- * del distrito, no al establecimiento. Tres hospitales de Lima comparten el
- * mismo punto, y dos registros tienen un solo decimal (~11 km de margen). Un
- * enlace con `destination=lat,lon` deja la ruta cerca pero no en la puerta.
- *
- * Google resuelve mucho mejor el NOMBRE del establecimiento. Se manda el
- * nombre + direccion + pais como texto y Google lo geocodifica contra su
- * propio registro de lugares, que si tiene la ubicacion real.
- *
- * Las coordenadas siguen usandose para ordenar por cercania, que es su unico
- * uso valido mientras no se corrijan.
- */
 function urlRuta(c) {
   const destino = [c.nombre, c.direccion, "Peru"].filter(Boolean).join(", ");
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destino)}`;
@@ -335,7 +319,7 @@ function CentroDestacado({ centro: c }) {
       <div className="dest-cab">
         <span className="dest-etiqueta">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          {"Centro de referencia m\u00E1s cercano"}
+          Centro de referencia más cercano
         </span>
         {c.status && (
           <span className={`dest-estado ${disponible ? "dest-estado-ok" : "dest-estado-no"}`}>
@@ -348,17 +332,17 @@ function CentroDestacado({ centro: c }) {
       <h3 className="dest-nombre">{c.nombre}</h3>
       <p className="dest-dist tz-mono">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        {c.distancia_km} {"km en l\u00EDnea recta"}
+        {c.distancia_km} km en línea recta
       </p>
 
       <dl className="dest-datos">
-        <div><dt>{"Direcci\u00F3n"}</dt><dd>{c.direccion}</dd></div>
+        <div><dt>Dirección</dt><dd>{c.direccion}</dd></div>
         <div><dt>Departamento</dt><dd>{c.departamento}</dd></div>
         <div><dt>Nivel</dt><dd>{c.nivel}</dd></div>
         <div><dt>Red</dt><dd>{c.iafas}</dd></div>
         <div className="dest-ancho"><dt>Capacidad</dt><dd>{c.especialidad}</dd></div>
         <div className="dest-ancho">
-          <dt>{"Coordenadas aprox."}</dt>
+          <dt>Coordenadas aprox.</dt>
           <dd className="tz-mono">{c.lat}, {c.lon}</dd>
         </div>
       </dl>
@@ -374,11 +358,11 @@ function CentroDestacado({ centro: c }) {
           target="_blank"
           rel="noopener noreferrer"
         >
-          {"Buscar por coordenadas"}
+          Buscar por coordenadas
         </a>
       </div>
       <p className="dest-mapa-nota">
-        {"La ruta busca el establecimiento por su nombre. Las coordenadas guardadas son aproximadas \u2014 sirven para ordenar por cercan\u00EDa, no para llegar a la puerta."}
+        La ruta busca el establecimiento por su nombre. Las coordenadas guardadas son aproximadas — sirven para ordenar por cercanía, no para llegar a la puerta.
       </p>
     </div>
   );

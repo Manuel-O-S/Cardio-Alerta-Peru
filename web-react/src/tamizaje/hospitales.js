@@ -12,6 +12,8 @@
  *   - UCI Neonatal (UCIN): disponibilidad de cuidados intensivos para recién nacidos.
  */
 
+import { deducirDesdeCoordenadas } from "./ubicacion.js";
+
 export const EXAMENES_LABELS = {
   electrocardiograma: "Electrocardiograma",
   ecografia: "Ecografía",
@@ -289,9 +291,20 @@ export const HOSPITALES = {
 };
 
 /**
- * Obtiene la lista de hospitales de una ciudad por su id.
- * Devuelve un array vacío si no hay hospitales registrados.
+ * Obtiene la lista de hospitales de una ciudad por su id o coordenadas.
+ * Si es una ubicación manual o por GPS, deduce la ciudad de referencia más cercana.
  */
-export function hospitalesDeCiudad(ciudadId) {
-  return HOSPITALES[ciudadId] || [];
+export function hospitalesDeCiudad(ciudadId, lat, lon) {
+  if (ciudadId && ciudadId !== "manual" && HOSPITALES[ciudadId]) {
+    return HOSPITALES[ciudadId];
+  }
+  const la = Number(lat);
+  const lo = Number(lon);
+  if (Number.isFinite(la) && Number.isFinite(lo)) {
+    const deducido = deducirDesdeCoordenadas(la, lo);
+    if (deducido?.id && HOSPITALES[deducido.id]) {
+      return HOSPITALES[deducido.id];
+    }
+  }
+  return [];
 }

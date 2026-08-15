@@ -6,10 +6,12 @@ import TarjetaHospital from "./TarjetaHospital.jsx";
  * (resultado Amarillo o Rojo).
  * Muestra las tarjetas de hospitales correspondientes a la ciudad actual.
  */
-export default function PanelDerivacionHospitales({ ubicacionId, onHospitalSeleccionado }) {
-  if (!ubicacionId) return null;
-  
-  const hospitales = hospitalesDeCiudad(ubicacionId);
+export default function PanelDerivacionHospitales({ ubicacionId, lat, lon, ubicacion, onHospitalSeleccionado }) {
+  const ciudadId = ubicacion?.id || ubicacionId;
+  const latitude = ubicacion?.lat ?? lat;
+  const longitude = ubicacion?.lon ?? lon;
+
+  const hospitales = hospitalesDeCiudad(ciudadId, latitude, longitude);
 
   return (
     <div className="deriv-panel">

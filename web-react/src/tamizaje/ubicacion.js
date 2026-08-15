@@ -115,17 +115,20 @@ export function ubicacionDeEstablecimiento(id) {
 }
 
 /**
- * Ubicacion escrita a mano. Se marca `manual: true` porque la interfaz debe
- * poder advertir que la altitud tambien la puso una persona: es el dato que
- * decide que umbral se aplica.
+ * Ubicacion escrita a mano o tomada de GPS. Se marca `manual: true` para indicar
+ * que las coordenadas o la altitud fueron ingresadas manualmente.
  */
 export function ubicacionManual({ nombre, altitudMsnm, lat, lon }) {
+  const la = Number(lat);
+  const lo = Number(lon);
+  const deduced = deducirDesdeCoordenadas(la, lo);
+
   return {
-    id: "manual",
-    nombre: nombre?.trim() || "Ubicacion manual",
+    id: deduced ? deduced.id : "manual",
+    nombre: nombre?.trim() || (deduced ? `Cerca de ${deduced.referencia}` : "Ubicación manual"),
     altitudMsnm: Number(altitudMsnm),
-    lat: Number(lat),
-    lon: Number(lon),
+    lat: la,
+    lon: lo,
     manual: true,
   };
 }
@@ -137,18 +140,6 @@ export function ubicacionManual({ nombre, altitudMsnm, lat, lon }) {
 /**
  * Deduce departamento y altitud aproximada desde unas coordenadas, buscando el
  * establecimiento conocido mas cercano.
- *
- * POR QUE ASI Y NO CON UN SERVICIO DE GEOCODIFICACION
- * Un servicio externo obligaria a abrir la politica de seguridad a otro
- * dominio, dependeria de internet justo donde peor conexion hay, y mandaria
- * las coordenadas del establecimiento a un tercero. Con 13 puntos de
- * referencia repartidos por el pais, el vecino mas cercano acierta el
- * departamento en la mayoria de casos y funciona sin conexion.
- *
- * LA ALTITUD QUE DEVUELVE ES UNA SUGERENCIA, NO UN DATO.
- * Es la del pueblo de referencia, que puede estar a cientos de metros de
- * diferencia. Como ese numero decide el umbral del tamizaje, la interfaz debe
- * pedir confirmacion antes de usarlo.
  */
 export function deducirDesdeCoordenadas(lat, lon) {
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
@@ -179,12 +170,11 @@ export function deducirDesdeCoordenadas(lat, lon) {
   if (!mejor) return null;
 
   return {
+    id: mejor.id,
     departamento: mejor.departamento,
     referencia: mejor.nombre,
     distanciaKm: Math.round(mejorKm),
     altitudSugerida: mejor.altitudMsnm,
-    // Mas alla de unos 60 km el departamento deja de ser fiable: el punto de
-    // referencia mas cercano puede estar del otro lado de una frontera.
     fiable: mejorKm <= 60,
   };
 }
