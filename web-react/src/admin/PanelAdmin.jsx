@@ -15,12 +15,12 @@ const adminAuthClient = createClient(
 
 export default function PanelAdmin({ usuario, onCerrarSesion }) {
   const [vistaActiva, setVistaActiva] = useState("doctores");
-  
+
   // Estados para Doctores
   const [doctores, setDoctores] = useState([]);
   const [cargandoDoctores, setCargandoDoctores] = useState(false);
   const [busqueda, setBusqueda] = useState("");
-  
+
   // Estados para Log
   const [registros, setRegistros] = useState([]);
   const [cargandoRegistros, setCargandoRegistros] = useState(false);
@@ -40,7 +40,7 @@ export default function PanelAdmin({ usuario, onCerrarSesion }) {
       .select("*")
       .eq("rol", "doctor")
       .order("nombre", { ascending: true });
-      
+
     if (!error && data) setDoctores(data);
     setCargandoDoctores(false);
   };
@@ -59,7 +59,7 @@ export default function PanelAdmin({ usuario, onCerrarSesion }) {
       `)
       .order("fecha_ingreso", { ascending: false })
       .limit(50);
-      
+
     if (!error && data) {
       setRegistros(data);
     }
@@ -81,9 +81,9 @@ export default function PanelAdmin({ usuario, onCerrarSesion }) {
       setCargandoForm(false);
       return;
     }
-    
+
     const email = `${dni}@cardioalerta.pe`;
-    
+
     const { data, error } = await adminAuthClient.auth.signUp({
       email,
       password: contrasena,
@@ -124,7 +124,7 @@ export default function PanelAdmin({ usuario, onCerrarSesion }) {
 
   const eliminarDoctor = async (id, nombreDoc) => {
     if (!window.confirm(`¿Estás seguro de que deseas revocar permanentemente el acceso del doctor ${nombreDoc}?`)) return;
-    
+
     // Al eliminar el perfil, se bloquea el acceso gracias a la validación en authLocal.js
     const { error } = await supabase.from("perfiles").delete().eq("id", id);
     if (!error) {
@@ -134,30 +134,30 @@ export default function PanelAdmin({ usuario, onCerrarSesion }) {
     }
   };
 
-  const doctoresFiltrados = doctores.filter(d => 
-    d.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
+  const doctoresFiltrados = doctores.filter(d =>
+    d.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
     d.dni.includes(busqueda)
   );
 
   return (
     <div className="admin-dashboard">
       <style>{CSS_ADMIN}</style>
-      
+
       {/* SIDEBAR */}
       <aside className="admin-sidebar">
         <div className="admin-sidebar-header">
           <h2>Panel de Control</h2>
         </div>
         <nav className="admin-nav">
-          <button 
+          <button
             className={`admin-nav-item ${vistaActiva === "doctores" ? "active" : ""}`}
             onClick={() => setVistaActiva("doctores")}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
             Personal Médico
           </button>
-          
-          <button 
+
+          <button
             className={`admin-nav-item ${vistaActiva === "log" ? "active" : ""}`}
             onClick={() => setVistaActiva("log")}
           >
@@ -165,7 +165,7 @@ export default function PanelAdmin({ usuario, onCerrarSesion }) {
             Log de Accesos
           </button>
         </nav>
-        
+
         {/* Footer del Sidebar con Info de Usuario y Botón Salir */}
         <div className="admin-sidebar-footer">
           <div className="admin-user-info">
@@ -191,12 +191,12 @@ export default function PanelAdmin({ usuario, onCerrarSesion }) {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 Añadir Nuevo
               </button>
-              
+
               <div className="admin-search">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <input 
-                  type="text" 
-                  placeholder="Buscar por DNI o Nombre..." 
+                <input
+                  type="text"
+                  placeholder="Buscar por DNI o Nombre..."
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                 />
@@ -227,7 +227,7 @@ export default function PanelAdmin({ usuario, onCerrarSesion }) {
                           <span className="admin-badge-rol">Doctor</span>
                         </td>
                         <td style={{ textAlign: "right" }}>
-                          <button 
+                          <button
                             className="admin-btn-action admin-btn-delete"
                             onClick={() => eliminarDoctor(doc.id, doc.nombre)}
                             title="Eliminar acceso"
@@ -293,17 +293,17 @@ export default function PanelAdmin({ usuario, onCerrarSesion }) {
           <div className="admin-modal">
             <div className="admin-modal-header">
               <h3>Registrar Nuevo Doctor</h3>
-              <button className="admin-modal-close" onClick={() => { setMostrarModal(false); setMensaje({tipo:"",texto:""}); }}>
+              <button className="admin-modal-close" onClick={() => { setMostrarModal(false); setMensaje({ tipo: "", texto: "" }); }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
-            
+
             <form onSubmit={registrarDoctor} className="admin-form">
               <div className="admin-form-group">
                 <label>DNI del Doctor</label>
-                <input 
-                  type="text" 
-                  value={dni} 
+                <input
+                  type="text"
+                  value={dni}
                   onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
                   maxLength={8}
                   placeholder="Ej: 12345678"
@@ -313,9 +313,9 @@ export default function PanelAdmin({ usuario, onCerrarSesion }) {
 
               <div className="admin-form-group">
                 <label>Nombre Completo</label>
-                <input 
-                  type="text" 
-                  value={nombre} 
+                <input
+                  type="text"
+                  value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                   placeholder="Ej: Dr. Juan Pérez"
                   required
@@ -324,9 +324,9 @@ export default function PanelAdmin({ usuario, onCerrarSesion }) {
 
               <div className="admin-form-group">
                 <label>Contraseña Temporal</label>
-                <input 
-                  type="text" 
-                  value={contrasena} 
+                <input
+                  type="text"
+                  value={contrasena}
                   onChange={(e) => setContrasena(e.target.value)}
                   placeholder="Mínimo 6 caracteres"
                   required
@@ -358,7 +358,7 @@ const CSS_ADMIN = `
   .admin-dashboard {
     display: flex;
     min-height: 100vh;
-    width: 100vw;
+    width: 100%;
     background: #f8fafc;
     margin: 0;
     padding: 0;
@@ -766,5 +766,96 @@ const CSS_ADMIN = `
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ========== MEDIA QUERIES RESPONSIVE (MOBILE & TABLET) ========== */
+  @media (max-width: 850px) {
+    .admin-dashboard {
+      flex-direction: column;
+      min-height: 100vh;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    .admin-sidebar {
+      width: 100%;
+      flex-direction: column;
+    }
+
+    .admin-sidebar-header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .admin-nav {
+      flex-direction: row;
+      padding: 8px 16px;
+      overflow-x: auto;
+      gap: 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-nav-item {
+      padding: 10px 14px;
+      font-size: 0.88rem;
+      white-space: nowrap;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .admin-sidebar-footer {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      gap: 10px;
+    }
+
+    .admin-btn-logout {
+      width: auto;
+      padding: 8px 14px;
+      font-size: 0.82rem;
+    }
+
+    .admin-content {
+      padding: 16px 12px;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    .admin-toolbar {
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+      padding: 16px;
+    }
+
+    .admin-search {
+      width: 100%;
+    }
+
+    .admin-search input {
+      width: 100%;
+    }
+
+    .admin-btn-primary {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .admin-table th, .admin-table td {
+      padding: 12px 14px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    .admin-modal {
+      width: 92%;
+      max-width: 420px;
+      margin: 16px;
+    }
   }
 `;
