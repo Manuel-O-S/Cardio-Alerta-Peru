@@ -1,22 +1,78 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Cardio Alerta Perú
 
-# Run and deploy your AI Studio app
+App de apoyo diagnóstico para especialistas de neonatos: **tamiza recién nacidos
+por oximetría de pulso usando umbrales adaptados a la altitud del Perú**, funciona
+con o sin internet, y sugiere el centro especializado más cercano al que derivar al
+paciente.
 
-This contains everything you need to run your app locally.
+Dirigida a **profesionales de enfermería sin especialización en cardiología
+neonatal**, que son quienes realizan la evaluación inicial en la mayoría de
+establecimientos del país.
 
-View your app in AI Studio: https://ai.studio/apps/e2922976-582e-4a87-b1ef-e1c02e6ab2a2
+La premisa completa está en
+[`docs/Propuesta_Proyecto.md`](./docs/Propuesta_Proyecto.md).
 
-## Run Locally
+El análisis de imagen de ecocardiograma quedó **fuera del alcance**, por ausencia
+de datasets que permitan validación clínica y porque no resuelve la brecha del
+primer nivel de atención. El sustento está en
+[`docs/Datasets_Fase_Imagen.md`](./docs/Datasets_Fase_Imagen.md). El endpoint
+`/predict` sigue existiendo con una clasificación simulada, pero no es parte del
+producto.
 
-**Prerequisites:**  [Android Studio](https://developer.android.com/studio)
+Proyecto para la **Hackatón Niño San Borja 2026** — Desafío 2: *Cardio Alerta Perú*.
 
+## Equipo
 
-1. Open Android Studio
-2. Select **Open** and choose the directory containing this project
-3. Allow Android Studio to fix any incompatibilities as it imports the project.
-4. Create a file named `.env` in the project directory and set `GEMINI_API_KEY` in that file to your Gemini API key (see `.env.example` for an example)
-5. Remove this line from the app's `build.gradle.kts` file: `signingConfig = signingConfigs.getByName("debugConfig")`
-6. Run the app on an emulator or physical device
-7. If you have already published your app in AI Studio, please [request upload key reset](https://support.google.com/googleplay/android-developer/answer/9842756#zippy=%2Crequest-an-upload-key-reset) in Google Play Console.
+| Integrante | Rol |
+|---|---|
+| Manuel Ocaña Suarez | Backend, despliegue e integración de IA (Render) |
+| Angel Cordova Camargo | Modelo de IA / Machine Learning |
+| Sandro Miñope Reyes | App móvil (Kotlin / Android) |
+| Said Alferez Andia | Figma, Web (React / Netlify) y documentación |
+| Davis Ochoa Mendieta | Lead clínico (Medicina) |
+
+## Estructura del repo
+
+```
+/backend      → API en FastAPI, desplegada en Render (Manuel)
+/app-kotlin   → App Android (Sandro)
+/web-react    → Web del tamizaje, desplegada en Netlify (Said)
+/modelo       → Dataset, entrenamiento y exportación del modelo de IA (Angel) — fase 2
+/compartido   → Umbrales clínicos y vectores de conformidad del tamizaje
+/docs         → Documentación del proyecto: arquitectura, Anexo 1, Anexo 2
+/figma        → Prototipo y export de pantallas
+```
+
+> **`/compartido` es la fuente de verdad clínica.** El motor de tamizaje está
+> implementado tres veces (Kotlin en la app, JavaScript en la web, Python en el
+> backend) porque el stack no permite compartir código entre los tres. Los
+> umbrales y los casos de prueba viven en `/compartido` para que no diverjan.
+>
+> **Regla del equipo: quien toque un umbral corre las tres suites, o no mergea.**
+
+Cada carpeta tiene su propio README con instrucciones específicas. El detalle
+completo de cómo encajan las piezas está en
+[`docs/Arquitectura_Cardio_Alerta_Peru.docx`](./docs/Arquitectura_Cardio_Alerta_Peru.docx).
+
+## Cómo trabajamos
+
+- **Rama principal:** `main`. Cada quien trabaja en su propia rama
+  (`backend`, `app-kotlin`, `web-react`, `modelo`, `docs`) y hace *pull request*
+  a `main` cuando su parte compila/corre. Evitamos hacer push directo a `main`.
+- **Commits:** mensajes cortos en español, en imperativo (`agrega endpoint /predict`,
+  no `agregando` ni `added`).
+- **Evidencias:** cada avance funcional relevante se documenta con una captura o
+  video corto (ver `docs/`).
+- **Bloqueos:** si algo te bloquea más de un día, avisa al grupo de inmediato, no
+  esperes a la reunión diaria.
+
+## Fechas clave
+
+- Hoy → 13/08: desarrollo remoto (ver cronograma del equipo).
+- 14–15/08: hackatón presencial — solo integración final, pruebas y exposición.
+
+## Licencia
+
+Este proyecto se publica bajo licencia MIT (ver `LICENSE`), en línea con el
+requisito de las bases de la hackatón de poner a disposición pública los
+componentes desarrollados bajo una licencia abierta.

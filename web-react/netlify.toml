@@ -1,0 +1,20 @@
+# Despliegue de la web en Netlify.
+# Si el repo esta conectado a Netlify, la "base directory" debe ser web-react.
+
+[build]
+  base = "web-react"
+  command = "npm run build"
+  publish = "dist"
+
+# La app es de una sola pagina: cualquier ruta la resuelve React.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# El service worker no debe quedar cacheado por el CDN, o los usuarios
+# se quedan con una version vieja de la app para siempre.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"

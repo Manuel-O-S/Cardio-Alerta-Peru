@@ -1,0 +1,14 @@
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+python-multipart==0.0.9
+
+# Base de datos. Opcional: sin DATABASE_URL el backend usa el archivo JSON.
+#
+# Se usan rangos y no versiones exactas a proposito. psycopg publica los wheels
+# binarios por version de Python, y una version antigua puede no tener wheel
+# para el Python que use el servidor: ahi la instalacion falla con
+# "No matching distribution found", aunque el paquete exista.
+#
+# Probado con psycopg 3.2.13 y 3.3.4 sobre SQLAlchemy 2.0.32.
+sqlalchemy>=2.0.30,<2.1
+psycopg[binary]>=3.2.10,<3.4

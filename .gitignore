@@ -1,18 +1,45 @@
-*.iml
-.gradle
-.kotlin
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+# --- Sistema operativo / editores ---
 .DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# --- Python (backend, modelo) ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# --- Node / React (web-react) ---
+node_modules/
+dist/
+build/
 .env
-debug.keystore
+.env.local
+npm-debug.log*
+
+# --- Android / Kotlin (app-kotlin) ---
+*.iml
+.gradle/
+/local.properties
+/.idea/
+/captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+
+# --- Modelos y datasets pesados: no versionar binarios grandes ---
+*.h5
+*.tflite
+*.pt
+/modelo/data/raw/
+
+# --- Secretos ---
+*.pem
+*.key
+.env

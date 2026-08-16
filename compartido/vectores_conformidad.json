@@ -1,0 +1,159 @@
+{
+  "version_umbrales": "1.0.0",
+  "_nota": [
+    "Estos casos son el contrato clinico del proyecto. Los tres motores (JS, Kotlin,",
+    "Python) tienen que devolver EXACTAMENTE el mismo resultado para cada uno.",
+    "Si tocas un umbral, corre las tres suites. Si una falla, la app y el backend",
+    "estan clasificando distinto al mismo bebe."
+  ],
+  "casos": [
+    {
+      "id": "demo_lima_vs_juliaca_a",
+      "descripcion": "La demo: misma medicion a nivel del mar. 88% preductal esta bajo el corte critico de 90.",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 30, "spo2Preductal": 88, "spo2Postductal": 86 },
+      "espera": { "resultado": "positivo", "banda": "B1" }
+    },
+    {
+      "id": "demo_lima_vs_juliaca_b",
+      "descripcion": "La demo: la MISMA medicion en Juliaca. Un RN sano de altura satura asi; con la banda correcta no es positivo.",
+      "entrada": { "altitudMsnm": 3825, "horasDeVida": 30, "spo2Preductal": 88, "spo2Postductal": 86 },
+      "espera": { "resultado": "negativo", "banda": "B3" }
+    },
+    {
+      "id": "captura_del_equipo_sintomatico",
+      "descripcion": "El caso de las capturas: cianosis central marcada. Un RN sintomatico NO se tamiza, se evalua.",
+      "entrada": {
+        "altitudMsnm": 150, "horasDeVida": 24, "edadGestacionalSem": 38,
+        "spo2Preductal": 88, "spo2Postductal": 86, "fcLpm": 168, "frRpm": 62, "pesoKg": 3.2,
+        "sintomas": ["cianosis_central", "soplo_cardiaco"]
+      },
+      "espera": { "resultado": "no_elegible", "motivoNoElegible": "sintomatico" }
+    },
+    {
+      "id": "sano_nivel_del_mar",
+      "descripcion": "Recien nacido sano a nivel del mar.",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 30, "spo2Preductal": 98, "spo2Postductal": 97 },
+      "espera": { "resultado": "negativo", "banda": "B1" }
+    },
+    {
+      "id": "falta_postductal",
+      "descripcion": "Solo hay medicion de mano derecha. Sin el pie no se puede evaluar el diferencial: incompleto, no negativo.",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 30, "spo2Preductal": 98 },
+      "espera": { "resultado": "incompleto", "banda": "B1" }
+    },
+    {
+      "id": "critico_solo_en_pie",
+      "descripcion": "Preductal normal pero pie por debajo del corte critico: positivo igual.",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 30, "spo2Preductal": 96, "spo2Postductal": 85 },
+      "espera": { "resultado": "positivo", "banda": "B1" }
+    },
+    {
+      "id": "diferencial_mayor_a_3",
+      "descripcion": "Ambas por encima del corte de paso pero con diferencia de 6 puntos: repetir. Este es el patron de la coartacion.",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 30, "spo2Preductal": 96, "spo2Postductal": 90 },
+      "espera": { "resultado": "repetir", "banda": "B1", "proximaRonda": 2 }
+    },
+    {
+      "id": "diferencial_invertido",
+      "descripcion": "Diferencia invertida (el pie satura mas que la mano). Se usa el valor absoluto, pero el signo se guarda para el registro.",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 30, "spo2Preductal": 92, "spo2Postductal": 97 },
+      "espera": { "resultado": "repetir", "banda": "B1", "diferenciaSpo2": -5 }
+    },
+    {
+      "id": "zona_gris_repetir",
+      "descripcion": "Ambas entre el corte critico y el de paso: repetir.",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 30, "spo2Preductal": 92, "spo2Postductal": 91 },
+      "espera": { "resultado": "repetir", "banda": "B1", "proximaRonda": 2 }
+    },
+    {
+      "id": "cierre_tercera_ronda",
+      "descripcion": "La misma medicion en la tercera ronda ya no repite: cierra en positivo. Sin esto el caso queda abierto para siempre.",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 32, "spo2Preductal": 92, "spo2Postductal": 91, "ronda": 3 },
+      "espera": { "resultado": "positivo", "banda": "B1" }
+    },
+    {
+      "id": "menor_de_24_horas",
+      "descripcion": "Antes de las 24 h no corresponde tamizar: la transicion circulatoria no termino.",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 18, "spo2Preductal": 92, "spo2Postductal": 91 },
+      "espera": { "resultado": "no_elegible", "motivoNoElegible": "menor_24h" }
+    },
+    {
+      "id": "sintomatico_domina_sobre_edad",
+      "descripcion": "Bebe de 10 h con mala perfusion: el motivo es sintomatico, no la edad. Importa porque cambia la conducta de 'espere' a 'evalue ahora'.",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 10, "spo2Preductal": 92, "spo2Postductal": 91, "sintomas": ["mala_perfusion"] },
+      "espera": { "resultado": "no_elegible", "motivoNoElegible": "sintomatico" }
+    },
+    {
+      "id": "oxigeno_suplementario",
+      "descripcion": "Con oxigeno suplementario la saturacion no es interpretable como tamizaje.",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 30, "spo2Preductal": 97, "spo2Postductal": 96, "oxigenoSuplementario": true },
+      "espera": { "resultado": "no_elegible", "motivoNoElegible": "oxigeno_suplementario" }
+    },
+    {
+      "id": "soplo_no_excluye_pero_avisa",
+      "descripcion": "Un soplo aislado no saca del tamizaje, pero obliga a evaluacion clinica igual. El resultado NO cambia por el soplo.",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 30, "spo2Preductal": 98, "spo2Postductal": 97, "sintomas": ["soplo_cardiaco"] },
+      "espera": { "resultado": "negativo", "banda": "B1", "avisoPresente": "soplo_cardiaco" }
+    },
+    {
+      "id": "banda2_cusco",
+      "descripcion": "Banda intermedia (Cusco, 3400 msnm).",
+      "entrada": { "altitudMsnm": 3400, "horasDeVida": 30, "spo2Preductal": 92, "spo2Postductal": 91 },
+      "espera": { "resultado": "negativo", "banda": "B2" }
+    },
+    {
+      "id": "banda2_positivo",
+      "descripcion": "Banda intermedia, por debajo del corte critico.",
+      "entrada": { "altitudMsnm": 3000, "horasDeVida": 30, "spo2Preductal": 84, "spo2Postductal": 83 },
+      "espera": { "resultado": "positivo", "banda": "B2" }
+    },
+    {
+      "id": "limite_altitud_2499",
+      "descripcion": "Limite exacto: 2499 msnm todavia es banda 1.",
+      "entrada": { "altitudMsnm": 2499, "horasDeVida": 30, "spo2Preductal": 96, "spo2Postductal": 95 },
+      "espera": { "resultado": "negativo", "banda": "B1" }
+    },
+    {
+      "id": "limite_altitud_2500",
+      "descripcion": "Limite exacto: 2500 msnm ya es banda 2. Misma medicion, resultado igual, pero la banda cambia.",
+      "entrada": { "altitudMsnm": 2500, "horasDeVida": 30, "spo2Preductal": 96, "spo2Postductal": 95 },
+      "espera": { "resultado": "negativo", "banda": "B2" }
+    },
+    {
+      "id": "limite_altitud_3500",
+      "descripcion": "Limite exacto: 3500 msnm ya es banda 3.",
+      "entrada": { "altitudMsnm": 3500, "horasDeVida": 30, "spo2Preductal": 89, "spo2Postductal": 88 },
+      "espera": { "resultado": "negativo", "banda": "B3" }
+    },
+    {
+      "id": "limite_spo2_exacto_90_banda1",
+      "descripcion": "90% exacto NO es critico en banda 1 (el corte es 'menor a 90'), pero tampoco pasa: repetir.",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 30, "spo2Preductal": 90, "spo2Postductal": 90 },
+      "espera": { "resultado": "repetir", "banda": "B1" }
+    },
+    {
+      "id": "limite_spo2_exacto_95_banda1",
+      "descripcion": "95% exacto SI pasa en banda 1 (el corte es 'mayor o igual a 95').",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 30, "spo2Preductal": 95, "spo2Postductal": 93 },
+      "espera": { "resultado": "negativo", "banda": "B1" }
+    },
+    {
+      "id": "limite_diferencia_exacta_3",
+      "descripcion": "Diferencia de exactamente 3 todavia pasa (el corte es 'mayor a 3').",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 30, "spo2Preductal": 98, "spo2Postductal": 95 },
+      "espera": { "resultado": "negativo", "banda": "B1" }
+    },
+    {
+      "id": "prematuro_avisa_no_cambia_resultado",
+      "descripcion": "Pretermino de 34 sem: el resultado sale del algoritmo igual, pero se avisa que la interpretacion es limitada.",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 30, "edadGestacionalSem": 34, "spo2Preductal": 98, "spo2Postductal": 97 },
+      "espera": { "resultado": "negativo", "banda": "B1", "avisoPresente": "prematuro" }
+    },
+    {
+      "id": "signos_vitales_no_alteran_resultado",
+      "descripcion": "FC 168 esta dentro del rango de referencia; FR 62 esta por encima. Ninguno de los dos cambia el resultado del tamizaje.",
+      "entrada": { "altitudMsnm": 150, "horasDeVida": 30, "spo2Preductal": 98, "spo2Postductal": 97, "fcLpm": 168, "frRpm": 62 },
+      "espera": { "resultado": "negativo", "banda": "B1", "avisoPresente": "fr_alta", "avisoAusente": "fc_alta" }
+    }
+  ]
+}

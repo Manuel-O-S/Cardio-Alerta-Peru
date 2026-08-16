@@ -1,0 +1,43 @@
+# ---------------------------------------------------------------------------
+# Despliegue del backend en Render (Blueprint).
+#
+# Este archivo va en la RAIZ del repositorio. Con él, el servicio se puede
+# recrear desde cero sin depender de lo que alguien haya configurado a mano en
+# el panel — que es exactamente el problema que teníamos antes.
+#
+# Para usarlo: en Render, New > Blueprint, y apuntar a este repositorio.
+#
+# La contraseña de la base de datos NO va acá. Se configura en el panel
+# (sync: false hace que Render la pida al desplegar y no la guarde en el repo).
+# ---------------------------------------------------------------------------
+
+services:
+  - type: web
+    name: cardio-alerta-peru
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: backend
+
+    buildCommand: pip install -r requirements.txt
+
+    # Render inyecta $PORT. Hay que escuchar en 0.0.0.0, no en 127.0.0.1, o el
+    # servicio arranca pero queda inalcanzable desde fuera del contenedor.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
+    # Render consulta esta ruta para saber si el servicio está sano.
+    healthCheckPath: /health
+
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.4"
+
+      # Cadena de conexión de Supabase (session pooler).
+      # sync: false -> Render la pide al desplegar y no queda en el repositorio.
+      - key: DATABASE_URL
+        sync: false
+
+      # Orígenes autorizados a llamar la API, separados por comas.
+      # Reemplazar por la URL real de Netlify una vez desplegada la web.
+      - key: ORIGENES_PERMITIDOS
+        value: "http://localhost:5173,https://chimerical-medovik-10895c.netlify.app"

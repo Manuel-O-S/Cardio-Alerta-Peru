@@ -1,0 +1,252 @@
+[
+  {
+    "nombre": "Hospital Regional Honorio Delgado",
+    "direccion": "Arequipa, Arequipa",
+    "departamento": "Arequipa",
+    "nivel": "III-1",
+    "iafas": "MINSA",
+    "especialidad": "Nodo de referencia principal para la macro-region sur",
+    "lat": -16.409,
+    "lon": -71.5375
+  },
+  {
+    "nombre": "Hospital Nacional Carlos Alberto Seguin Escobedo",
+    "direccion": "Arequipa, Arequipa",
+    "departamento": "Arequipa",
+    "nivel": "III-1",
+    "iafas": "EsSalud",
+    "especialidad": "Hospital base para toda la red de EsSalud del sur",
+    "lat": -16.409,
+    "lon": -71.5375
+  },
+  {
+    "nombre": "Hospital Nacional Alberto Sabogal Sologuren",
+    "direccion": "Bellavista, Callao",
+    "departamento": "Callao",
+    "nivel": "III-1",
+    "iafas": "EsSalud",
+    "especialidad": "Ecocardiografia y cardiologia pediatrica",
+    "lat": -12.0575,
+    "lon": -77.1183
+  },
+  {
+    "nombre": "Centro Medico Naval CMST",
+    "direccion": "Bellavista, Callao",
+    "departamento": "Callao",
+    "nivel": "III-1",
+    "iafas": "Otras",
+    "especialidad": "Especialidades quirurgicas pediatricas para derechohabientes de la Marina",
+    "lat": -12.0575,
+    "lon": -77.1183
+  },
+  {
+    "nombre": "Hospital Antonio Lorena",
+    "direccion": "Santiago, Cusco",
+    "departamento": "Cusco",
+    "nivel": "III-1",
+    "iafas": "MINSA",
+    "especialidad": "Centro de derivacion para la macro-region sur-oriente",
+    "lat": -13.532,
+    "lon": -71.9675
+  },
+  {
+    "nombre": "Hospital Nacional Ramiro Priale Priale",
+    "direccion": "Huancayo, Junin",
+    "departamento": "Junin",
+    "nivel": "III-1",
+    "iafas": "EsSalud",
+    "especialidad": "Hospital base de referencia para la region centro",
+    "lat": -12.0651,
+    "lon": -75.2049
+  },
+  {
+    "nombre": "Hospital Regional Docente de Trujillo",
+    "direccion": "Trujillo, La Libertad",
+    "departamento": "La Libertad",
+    "nivel": "III-1",
+    "iafas": "MINSA",
+    "especialidad": "Nodo de referencia para la macro-region norte; UCIN y cardiologia",
+    "lat": -8.1116,
+    "lon": -79.0288
+  },
+  {
+    "nombre": "Hospital Nacional Almanzor Aguinaga Asenjo",
+    "direccion": "Chiclayo, Lambayeque",
+    "departamento": "Lambayeque",
+    "nivel": "III-1",
+    "iafas": "EsSalud",
+    "especialidad": "Hospital de maxima derivacion para la red de EsSalud en el norte",
+    "lat": -6.7714,
+    "lon": -79.8409
+  },
+  {
+    "nombre": "Instituto Nacional de Salud del Nino San Borja (INSN SB)",
+    "direccion": "San Borja, Lima",
+    "departamento": "Lima",
+    "nivel": "III-2",
+    "iafas": "MINSA",
+    "especialidad": "Cirugia cardiovascular de maxima complejidad e intervencionismo",
+    "lat": -12.1075,
+    "lon": -76.9998
+  },
+  {
+    "nombre": "Instituto Nacional Materno Perinatal (INMP)",
+    "direccion": "Cercado de Lima, Lima",
+    "departamento": "Lima",
+    "nivel": "III-2",
+    "iafas": "MINSA",
+    "especialidad": "Ecocardiografia, estabilizacion desde el nacimiento y UCIN avanzada",
+    "lat": -12.0464,
+    "lon": -77.0428
+  },
+  {
+    "nombre": "Instituto Nacional de Salud del Nino (Brena)",
+    "direccion": "Brena, Lima",
+    "departamento": "Lima",
+    "nivel": "III-2",
+    "iafas": "MINSA",
+    "especialidad": "Cardiologia pediatrica, ecocardiografia y cirugia",
+    "lat": -12.0555,
+    "lon": -77.0466
+  },
+  {
+    "nombre": "Hospital Nacional Dos de Mayo",
+    "direccion": "Cercado de Lima, Lima",
+    "departamento": "Lima",
+    "nivel": "III-1",
+    "iafas": "MINSA",
+    "especialidad": "Cardiologia, cirugia toracica y cardiovascular",
+    "lat": -12.0464,
+    "lon": -77.0428
+  },
+  {
+    "nombre": "Hospital Maria Auxiliadora",
+    "direccion": "San Juan de Miraflores, Lima",
+    "departamento": "Lima",
+    "nivel": "III-1",
+    "iafas": "MINSA",
+    "especialidad": "Cardiologia pediatrica y cuidados intensivos neonatales",
+    "lat": -12.1553,
+    "lon": -76.9711
+  },
+  {
+    "nombre": "Hospital Santa Rosa de Lima",
+    "direccion": "Pueblo Libre, Lima",
+    "departamento": "Lima",
+    "nivel": "III-1",
+    "iafas": "MINSA",
+    "especialidad": "Cardiologia pediatrica y diagnostico por imagenes",
+    "lat": -12.0746,
+    "lon": -77.0631
+  },
+  {
+    "nombre": "Hospital Nacional Cayetano Heredia",
+    "direccion": "San Martin de Porres, Lima",
+    "departamento": "Lima",
+    "nivel": "III-1",
+    "iafas": "MINSA",
+    "especialidad": "UCIN, ecocardiografia y diagnostico especializado",
+    "lat": -12.0,
+    "lon": -77.0833
+  },
+  {
+    "nombre": "Hospital de Vitarte",
+    "direccion": "Ate, Lima",
+    "departamento": "Lima",
+    "nivel": "II-2",
+    "iafas": "MINSA",
+    "especialidad": "Centro intermedio de estabilizacion, inicio de Prostaglandina E1 y puente de derivacion",
+    "lat": -12.0267,
+    "lon": -76.9186
+  },
+  {
+    "nombre": "Instituto Nacional Cardiovascular (INCOR)",
+    "direccion": "Jesus Maria, Lima",
+    "departamento": "Lima",
+    "nivel": "III-2",
+    "iafas": "EsSalud",
+    "especialidad": "Centro de mayor desarrollo en cardiologia y cirugia cardiovascular",
+    "lat": -12.0736,
+    "lon": -77.0483
+  },
+  {
+    "nombre": "Hospital Nacional Edgardo Rebagliati Martins",
+    "direccion": "Jesus Maria, Lima",
+    "departamento": "Lima",
+    "nivel": "III-1",
+    "iafas": "EsSalud",
+    "especialidad": "UCIN de alta especialidad y cardiologia pediatrica",
+    "lat": -12.0736,
+    "lon": -77.0483
+  },
+  {
+    "nombre": "Hospital Nacional Guillermo Almenara Irigoyen",
+    "direccion": "La Victoria, Lima",
+    "departamento": "Lima",
+    "nivel": "III-1",
+    "iafas": "EsSalud",
+    "especialidad": "Cirugia cardiovascular pediatrica y UCIN avanzada",
+    "lat": -12.0654,
+    "lon": -77.0136
+  },
+  {
+    "nombre": "Hospital Militar Central",
+    "direccion": "Jesus Maria, Lima",
+    "departamento": "Lima",
+    "nivel": "III-1",
+    "iafas": "Otras",
+    "especialidad": "Atencion cardiologica y UCIN para derechohabientes del Ejercito",
+    "lat": -12.0736,
+    "lon": -77.0483
+  },
+  {
+    "nombre": "Clinica Delgado (Red Auna)",
+    "direccion": "Miraflores, Lima",
+    "departamento": "Lima",
+    "nivel": "III-1",
+    "iafas": "Otras",
+    "especialidad": "Alta complejidad privada, ecocardiografia pediatrica y UCIN",
+    "lat": -12.1211,
+    "lon": -77.0295
+  },
+  {
+    "nombre": "Clinica San Pablo",
+    "direccion": "Santiago de Surco, Lima",
+    "departamento": "Lima",
+    "nivel": "III-1",
+    "iafas": "Otras",
+    "especialidad": "Instituto del Corazon privado con capacidad de cirugia cardiovascular pediatrica",
+    "lat": -12.135,
+    "lon": -76.9931
+  },
+  {
+    "nombre": "Clinica Internacional (Sede San Borja)",
+    "direccion": "San Borja, Lima",
+    "departamento": "Lima",
+    "nivel": "III-1",
+    "iafas": "Otras",
+    "especialidad": "Cuidados intensivos neonatales y especialistas en cardiologia",
+    "lat": -12.1075,
+    "lon": -76.9998
+  },
+  {
+    "nombre": "Hospital EsSalud II Pasco",
+    "direccion": "Cerro de Pasco, Pasco",
+    "departamento": "Pasco",
+    "nivel": "II-2",
+    "iafas": "EsSalud",
+    "especialidad": "Estabilizacion y referencia para neonatos en extrema altitud",
+    "lat": -10.6866,
+    "lon": -76.261
+  },
+  {
+    "nombre": "Hospital EsSalud III Juliaca",
+    "direccion": "Juliaca, Puno",
+    "departamento": "Puno",
+    "nivel": "III-1",
+    "iafas": "EsSalud",
+    "especialidad": "Estabilizacion, evaluacion cardiologica y puente de referencia en altura",
+    "lat": -15.5,
+    "lon": -70.1333
+  }
+]
