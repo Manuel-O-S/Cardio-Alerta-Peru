@@ -1,0 +1,6 @@
+{
+  "name": "CardioAlerta Perú",
+  "description": "Herramienta clínica de tamizaje neonatal y detección oportuna de cardiopatías congénitas críticas adaptada a la altitud geográfica del Perú.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
