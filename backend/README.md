@@ -8,18 +8,18 @@ API en FastAPI, desplegada en Render. Responsable: **Manuel**.
 backend/
   requirements.txt
   app/
-    main.py            # arranque de FastAPI + endpoint /health
+    main.py                    # arranque de FastAPI + endpoint /health
     routers/
-      predict.py         # POST /predict (placeholder, se completa en B06/B08)
-      centros.py           # GET /centros-cercanos (placeholder, se completa en B07)
+      predict.py                 # POST /predict (fuera de alcance, ver docs/Datasets_Fase_Imagen.md)
+      centros.py                   # GET /centros-cercanos
     ml/
-      inferencia.py         # envuelve el modelo de Angel (placeholder, B08)
+      inferencia.py                 # clasificación simulada, no forma parte del producto
     tamizaje/
-      motor_reglas.py        # motor de tamizaje por oximetría (sin dependencias)
+      motor_reglas.py                # motor de tamizaje por oximetría (sin dependencias)
   data/
-    centros_referencia.json  # se agrega en B07, con la lista de Davis (C03)
+    centros_referencia.json          # ~25 centros de referencia, recolectados por Davis
   tests/
-    test_conformidad_tamizaje.py  # 43 pruebas del motor de tamizaje
+    test_conformidad_tamizaje.py      # pruebas del motor de tamizaje
 ```
 
 ## Cómo correrla en local
@@ -55,22 +55,42 @@ pytest -v
 
 Las pruebas de tamizaje leen `compartido/vectores_conformidad.json`, el mismo
 archivo que usan las suites de la web y de la app. Si un caso falla acá pero pasa
-allá, el backend y la app están clasificando distinto al mismo bebé.
+allá, el backend y la app están clasificando distinto al mismo bebé — eso es un
+bloqueante, no un detalle menor.
 
 También puedes ver la documentación interactiva (autogenerada por FastAPI) en
 `http://127.0.0.1:8000/docs`.
 
+## Despliegue
+
+Configurado como Blueprint en `render.yaml` (raíz del repo): apuntar Render a
+este repositorio y el servicio se recrea solo, sin configuración manual en el
+panel salvo la contraseña de la base de datos (`DATABASE_URL`, deliberadamente
+fuera del repo). Detalle completo en
+[`../docs/Despliegue.md`](../docs/Despliegue.md).
+
+URL en producción: `https://cardio-alerta-peru.onrender.com`
+
+## Sobre `/predict` y `/ml`
+
+El endpoint `/predict` y la carpeta `app/ml/` existen en el código pero **no
+son parte del producto**: el análisis de imagen de ecocardiograma quedó fuera
+de alcance por falta de un dataset peruano validable clínicamente (ver
+[`../docs/Datasets_Fase_Imagen.md`](../docs/Datasets_Fase_Imagen.md)). La
+clasificación que devuelven es simulada — no usarlos como referencia de
+funcionalidad real del proyecto.
+
 ## Estado
 
-- [x] B03 — esqueleto de la API con `/health` (este commit)
-- [x] B04 — contrato formal de `/predict` y `/centros-cercanos` (ver ../docs/Contrato_API.md)
-- [x] B05 — desplegar en Render (https://cardio-alerta-peru.onrender.com)
-- [x] B06 — `/predict` con clasificación dummy (hash de la imagen, ver app/ml/inferencia.py)
-- [x] B07 — `/centros-cercanos` funcional (25 centros reales de Davis, filtro por tipo_seguro, distancia haversine)
-- [ ] B08 — modelo real integrado (fase 2, ver README raíz)
-- [x] T01 — `/tamizaje/evaluar` y `/tamizaje/catalogo` con el motor de reglas por
-      bandas de altitud (43 pruebas)
-- [ ] T02 — **Davis**: verificar los umbrales de las bandas 2 y 3 contra las
-      Figuras 3 y 4 de `doi.org/10.47487/apcyccv.v5i3.366`. Hoy están marcados
-      `provisional` y el motor lo advierte en cada respuesta. Son seis números en
-      `compartido/umbrales.json` y en los tres motores.
+- [x] API base con `/health`
+- [x] Contrato formal de `/predict` y `/centros-cercanos` (ver
+      `../docs/Contrato_API.md`)
+- [x] Desplegado en Render
+- [x] `/centros-cercanos` funcional (centros reales recolectados por Davis,
+      filtro por tipo de seguro, distancia haversine)
+- [x] `/tamizaje/evaluar` y `/tamizaje/catalogo` con el motor de reglas por
+      bandas de altitud, con suite de conformidad
+- [ ] **Pendiente — Davis:** verificar los umbrales de las bandas 2 y 3 contra
+      las Figuras 3 y 4 de `doi.org/10.47487/apcyccv.v5i3.366`. Hoy están
+      marcados `provisional` en `compartido/umbrales.json` y el motor lo
+      advierte en cada respuesta.

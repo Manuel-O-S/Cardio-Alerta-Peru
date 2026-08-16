@@ -1,10 +1,6 @@
 # figma
 
-Prototipo de diseño. Responsable: **Said** (tareas W01, W02, W05 del
-cronograma).
+Prototipo de diseño. Responsable: **Said**
 
-- Link al archivo Figma: _(pegar acá cuando exista — W01)_
-- Export de pantallas clave (PNG/PDF), para referencia sin depender de que
-  Figma esté disponible el día de la demo.
+- Link al archivo Figma: https://www.figma.com/es-la/comunidad/file/1670515576368212295/cardio-alerta-peru-app-screens
 
-Por ahora esta carpeta solo reserva el lugar en el repo.
